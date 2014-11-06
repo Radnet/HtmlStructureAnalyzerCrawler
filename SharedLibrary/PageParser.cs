@@ -13,9 +13,9 @@ namespace SharedLibrary
         public  PageInfo InfoResults;
         private HtmlDocument Map;
 
-        public PageInfo ParsePage(string page, string pageUrl, string domain)
+        public PageInfo ParsePageStats(string page, string pageUrl, string domain)
         {
-            // Loading Html Document with Play Store content
+            // Loading Html Document with content
             Map = new HtmlDocument();
             Map.LoadHtml(page);
 
@@ -38,7 +38,7 @@ namespace SharedLibrary
             InfoResults.InternalLinksCount = 0;
             InfoResults.ExternalLinksCount = 0;
 
-            // Checking for nodes of Internal Links
+            // Get nodes of Links
             HtmlNodeCollection nodes = Map.DocumentNode.SelectNodes("//a/@href");
             
             // Checking consistency
@@ -84,6 +84,37 @@ namespace SharedLibrary
                 return 0;
 
             return nodes.Count;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="response"></param>
+        /// <returns></returns>
+        public List<string> GetInternalLinks(string page, string domain)
+        {
+            // return obj
+            List<string> internalLinks = new List<string>();
+            
+            // Loading Html Document with content
+            Map = new HtmlDocument();
+            Map.LoadHtml(page);
+
+            // Parse
+            // Checking for nodes of Internal Links
+            HtmlNodeCollection nodes = Map.DocumentNode.SelectNodes("//a/@href");
+
+            // Counting Internal and External Links
+            foreach (var node in nodes)
+            {
+                // If hef url has the domain, it's an internal link
+                if (node.GetAttributeValue("href", " ").Contains(domain))
+                {
+                    internalLinks.Add(node.GetAttributeValue("href", " "));
+                }
+            }
+
+            return internalLinks;
         }
     }
 }

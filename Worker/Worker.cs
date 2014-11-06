@@ -37,7 +37,6 @@ namespace WebWorker
                 int endIndex    = pageUrl.IndexOf("/", startIndex);
                 string domain   = pageUrl.Substring(startIndex, endIndex - startIndex);
 
-
                 // Configuring server and Issuing Request
                 server.EncodingDetection = WebRequests.CharsetDetection.DefaultCharset;
                 string page = server.Get(pageUrl);
@@ -78,7 +77,7 @@ namespace WebWorker
                     retryCounter = 0;
 
                     // Parsing PAge Tags
-                    PageInfo parsedApp = parser.ParsePage(page, pageUrl, domain);
+                    PageInfo parsedApp = parser.ParsePageStats(page, pageUrl, domain);
                 }
             }
             catch (Exception ex)
