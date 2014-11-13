@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using SharedLibrary.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,17 +14,21 @@ namespace SharedLibrary
         public  PageInfo InfoResults;
         private HtmlDocument Map;
 
-        public PageInfo ParsePageStats(string page, string pageUrl, string domain)
+        public PageInfo ParsePageStats(FullPage page)
         {
             // Loading Html Document with content
             Map = new HtmlDocument();
-            Map.LoadHtml(page);
+            Map.LoadHtml(page.Page);
 
             InfoResults = new PageInfo();
 
             // Counting
             CountAllTags();
-            CountInternalAndExternalLinks(pageUrl,domain);
+            CountInternalAndExternalLinks(page.Domain);
+
+            // Domain and URL
+            InfoResults.Url = page.Url;
+            InfoResults.Domain = page.Domain;
 
             return InfoResults;
         }
@@ -32,7 +37,7 @@ namespace SharedLibrary
         /// Count all internal and external links of the page
         /// </summary>
         /// <returns></returns>
-        private void CountInternalAndExternalLinks(string pageUrl, string domain)
+        private void CountInternalAndExternalLinks(string domain)
         {
             // Zeroing
             InfoResults.InternalLinksCount = 0;

@@ -32,6 +32,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AWSSDK">
+      <HintPath>..\packages\AWSSDK.2.3.6.0\lib\net45\AWSSDK.dll</HintPath>
+    </Reference>
     <Reference Include="BDCCommons.Log">
       <HintPath>..\packages\BDCCommons.Log.2.0.1\lib\net45\BDCCommons.Log.dll</HintPath>
     </Reference>

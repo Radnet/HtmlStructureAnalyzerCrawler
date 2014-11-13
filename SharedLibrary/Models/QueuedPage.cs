@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace SharedLibrary
 {
-    class QueuedPage
+    public class QueuedPage
     {
-        public string Url { get; set; }
+        public string Domain { get; set; }
+        public string Url    { get; set; }
     }
 }

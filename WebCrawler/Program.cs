@@ -12,34 +12,88 @@ namespace WebCrawler
     {
         static void Main(string[] args)
         {
-            // Get Domains
-            string domain = "http://g1.globo.com";
-
             // Crawl while there are domains in Queue
-            //while(getDomains(out domain))
-            //{
-                CrawlUrls(domain);
-            //}
+            QueuedPage pageToParse;
+
+            while(GetQueuedPage(out pageToParse))
+            {
+                CrawlUrls(pageToParse);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pageToParse"></param>
+        /// <returns></returns>
+        private static bool GetQueuedPage(out QueuedPage pageToParse)
+        {
+            pageToParse = new QueuedPage();
+            // Get Queued page that is not on "busy" stats AND mark as busy
+
+            return false;
         }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="domain"></param>
-        private static void CrawlUrls(string domain)
+        private static void CrawlUrls(QueuedPage pageToParse)
         {
-            // Creating Instance of Web Requests Server
-            using(WebRequests server = new WebRequests())
+            // Check if page has alredy been processed
+            if (!IsProcessedPage(pageToParse))
             {
-                // Get Page
-                string page = server.Get(domain);
+                // Creating Instance of Web Requests Server
+                using (WebRequests server = new WebRequests())
+                {
+                    // Get Page
+                    string page = server.Get(pageToParse.Url);
+                    
+                    // Put page html on SQS Queue
+                    insetHtmlOnQueue(page);
 
-                //Parser
-                PageParser parser = new PageParser();
-                List<string> internalLinks = parser.GetInternalLinks(page, domain);
+                    //Parser Internal urls
+                    PageParser parser = new PageParser();
+                    List<string> internalUrl = parser.GetInternalLinks(page, pageToParse.Domain);
 
-                //Insert Internal Links in Queue
+                    //Insert Internal urls in Queue to be processed
+                    foreach (string internalLink in internalUrl)
+                    {
+                        InsertUrlOnQueue(internalLink);
+                    }
+                }
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="page"></param>
+        private static void insetHtmlOnQueue(string page)
+        {
+            // Insert Page on SQS
+            
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pageToParse"></param>
+        /// <returns></returns>
+        private static bool IsProcessedPage(QueuedPage pageToParse)
+        {
+            // Verify if page was processed, if TRUE, REMOVE from QUEUE
+            
+            return false;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private static bool InsertUrlOnQueue(string url)
+        {
+            // Put url on Queue to be processed
+            return false;
         }
     }
 }

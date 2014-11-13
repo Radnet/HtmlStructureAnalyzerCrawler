@@ -9,9 +9,11 @@ namespace SharedLibrary
 {
     public class PageInfo
     {
-        public TagQTD   TagsCount;
-        public int      ExternalLinksCount;
-        public int      InternalLinksCount;
+        public TagQTD  TagsCount { get; set; }
+        public int     ExternalLinksCount { get; set; }
+        public int     InternalLinksCount { get; set; }
+        public string  Url { get; set; }
+        public string  Domain { get; set; }
 
         public PageInfo()
         {
