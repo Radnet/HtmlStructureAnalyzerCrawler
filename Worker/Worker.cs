@@ -29,7 +29,7 @@ namespace WebWorker
             {  
                 FullPage fullPageObj;
                 
-                while(getFullPageFromQueue(out fullPageObj))
+                while(getFullPageFromSQSQueue(out fullPageObj))
                 {
                     // Parsing Page Tags
                     PageInfo parsedPage = parser.ParsePageStats(fullPageObj);
@@ -44,7 +44,7 @@ namespace WebWorker
             }
         }
 
-        private static bool getFullPageFromQueue(out FullPage fullPageObj)
+        private static bool getFullPageFromSQSQueue(out FullPage fullPageObj)
         {
             throw new NotImplementedException();
         }
