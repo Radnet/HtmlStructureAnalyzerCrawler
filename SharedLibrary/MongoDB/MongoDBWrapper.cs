@@ -190,5 +190,17 @@ namespace SharedLibrary.MongoDB
         {
             return _database.GetCollection<ProcessedPage>(Consts.MONGO_COLLECTION).SafeInsert(new ProcessedPage { Url = page.Url, Domain = page.Domain });
         }
+
+
+        /// <summary>
+        /// Adds the received obj to the stats collection
+        /// of queued pages
+        /// </summary>
+        /// <param name="pageStats">All relevant stats colleted on page</param>
+        /// <returns>Operation status. True if worked, false otherwise</returns>
+        public bool AddToStats(PageInfo pageStats)
+        {
+            return _database.GetCollection<PageInfo>(Consts.MONGO_STATS_COLLECTION).SafeInsert(pageStats);
+        }
     }
 }

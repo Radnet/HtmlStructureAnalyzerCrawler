@@ -1,6 +1,8 @@
 ﻿using Amazon.SQS;
 using Amazon.SQS.Model;
+using Newtonsoft.Json;
 using SharedLibrary;
+using SharedLibrary.Models;
 using SharedLibrary.MongoDB;
 using System;
 using System.Collections.Generic;
@@ -60,14 +62,14 @@ namespace WebCrawler
                 using (WebRequests server = new WebRequests())
                 {
                     // Get Page
-                    string page = server.Get(pageToParse.Url);
+                    string html = server.Get(pageToParse.Url);
                     
                     // Put page html on SQS Queue
-                    insetHtmlOnSQSQueue(page);
+                    insetHtmlOnSQSQueue(pageToParse, html);
 
                     //Parser Internal urls
                     PageParser parser = new PageParser();
-                    List<string> internalUrl = parser.GetInternalLinks(page, pageToParse.Domain);
+                    List<string> internalUrl = parser.GetInternalLinks(html, pageToParse.Domain);
 
                     //Insert Internal urls in Queue to be processed
                     foreach (string internalLink in internalUrl)
@@ -84,18 +86,26 @@ namespace WebCrawler
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="page"></param>
-        private static void insetHtmlOnSQSQueue(string page)
+        /// <param name="html"></param>
+        private static void insetHtmlOnSQSQueue(QueuedPage page, string html)
         {
             // Insert Page on SQS
             // Preparing SQS 
             // SQS uses N.Virginia as default
             AmazonSQSClient amazonSQSClient = new AmazonSQSClient(Consts.USER_ACCESS_KEY_ID,Consts.USER_SECRET_ACCESS_KEY,Amazon.RegionEndpoint.USEast1);
 
-            //Sending a message
+            // Prepare message model
+            FullPage pageToSQS = new FullPage();
+            pageToSQS.Domain   = page.Domain;
+            pageToSQS.Url      = page.Url;
+            pageToSQS.Html     = html;
+
+            //Preparing message
             SendMessageRequest sendMessageRequest = new SendMessageRequest();
-            sendMessageRequest.QueueUrl = Consts.SQS_QUEUE_URL; //URL from initial queue creation
-            sendMessageRequest.MessageBody = page;
+            sendMessageRequest.QueueUrl           = Consts.SQS_QUEUE_URL; //URL from initial queue creation
+            sendMessageRequest.MessageBody        = JsonConvert.SerializeObject(pageToSQS);
+            
+            //send
             amazonSQSClient.SendMessage(sendMessageRequest);
             
         }

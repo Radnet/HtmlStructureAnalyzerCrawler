@@ -18,6 +18,7 @@ namespace SharedLibrary
         public static readonly string MONGO_PASS             = "crawlerdbadministrator";
         public static readonly string MONGO_DATABASE         = "UrlsControl";
         public static readonly string MONGO_COLLECTION       = "ProcessedUrls";
+        public static readonly string MONGO_STATS_COLLECTION = "Stats";
         public static readonly string QUEUED_URLS_COLLECTION = "UrlQueue";
         public static readonly string MONGO_AUTH_DB          = "admin";
         public static readonly int    MONGO_TIMEOUT          = 10000;

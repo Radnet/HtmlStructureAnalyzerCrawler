@@ -18,7 +18,7 @@ namespace SharedLibrary
         {
             // Loading Html Document with content
             Map = new HtmlDocument();
-            Map.LoadHtml(page.Page);
+            Map.LoadHtml(page.Html);
 
             InfoResults = new PageInfo();
 
