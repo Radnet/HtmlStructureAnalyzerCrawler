@@ -21,8 +21,7 @@ namespace WebCrawler
         {
             // Configuring MongoDB Wrapper
             string fullServerAddress = String.Join(":", Consts.MONGO_SERVER, Consts.MONGO_PORT);
-            mongoDB.ConfigureDatabase(Consts.MONGO_USER, Consts.MONGO_PASS, Consts.MONGO_AUTH_DB, 
-                fullServerAddress, Consts.MONGO_TIMEOUT, Consts.MONGO_DATABASE, Consts.MONGO_COLLECTION);
+            mongoDB.ConfigureDatabase(Consts.MONGO_USER, Consts.MONGO_PASS, Consts.MONGO_AUTH_DB, fullServerAddress, Consts.MONGO_TIMEOUT, Consts.MONGO_DATABASE, Consts.MONGO_COLLECTION);
 
             // Crawl while there are domains in Queue
             QueuedPage pageToParse;
@@ -74,7 +73,12 @@ namespace WebCrawler
                     //Insert Internal urls in Queue to be processed
                     foreach (string internalLink in internalUrl)
                     {
-                        InsertPageOnURLQueue(internalLink, pageToParse.Domain);
+                        // Verify if url is NOT alredy on Queue or processed
+                        if (!mongoDB.IspageOnQueue(internalLink) && !mongoDB.IsPageProcessed(internalLink))
+                        {
+                            InsertPageOnURLQueue(internalLink, pageToParse.Domain);
+                        }
+                        
                     }
 
                     //Remove page from Queue and insert on Processed collection
@@ -137,9 +141,7 @@ namespace WebCrawler
             newPage.IsBusy = false;
 
             // Insert url on Queue
-            mongoDB.AddToQueue(newPage);
-
-            return false;
+            return mongoDB.AddToQueue(newPage);
         }
 
         /// <summary>

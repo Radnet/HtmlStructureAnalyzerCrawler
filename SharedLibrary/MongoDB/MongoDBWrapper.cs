@@ -90,6 +90,21 @@ namespace SharedLibrary.MongoDB
         }
 
         /// <summary>
+        /// Checks whether an page with the same URL
+        /// already exists into the processed database
+        /// </summary>
+        /// <param name="pageUrl">Url of the page</param>
+        /// <returns>True if the page exists into the database, false otherwise</returns>
+        public bool IsPageProcessed(string url)
+        {
+            var mongoQuery = Query.EQ("Url", url);
+
+            var queryResponse = _database.GetCollection<ProcessedPage>(_collectionName).FindOne(mongoQuery);
+
+            return queryResponse == null ? false : true;
+        }
+
+        /// <summary>
         /// Checks whether the received url is on the queue collection
         /// to be processed or not
         /// </summary>
