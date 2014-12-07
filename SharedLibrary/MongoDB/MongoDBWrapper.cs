@@ -142,7 +142,7 @@ namespace SharedLibrary.MongoDB
         /// <returns>Operation status. True if worked, false otherwise</returns>
         public bool AddToQueue (QueuedPage page)
         {
-            return _database.GetCollection<QueuedPage>(Consts.QUEUED_URLS_COLLECTION).SafeInsert(new QueuedPage { Url = page.Url, Domain = page.Domain, IsBusy = page.IsBusy });
+            return _database.GetCollection<QueuedPage>(Consts.QUEUED_URLS_COLLECTION).SafeInsert(new QueuedPage { Url = page.Url, Domain = page.Domain, IsBusy = page.IsBusy, Tries = 0 });
         }
 
         /// <summary>
@@ -161,7 +161,7 @@ namespace SharedLibrary.MongoDB
             var mongoResponse = _database.GetCollection<QueuedPage>(Consts.QUEUED_URLS_COLLECTION).FindAndModify(mongoQuery, null, updateStatement, false);
 
             // Checking for query error or no page found
-            if (mongoResponse == null || mongoResponse.Response == null)
+            if (mongoResponse == null || mongoResponse.Response == null || mongoResponse.ModifiedDocument == null)
             {
                 return null;
             }
@@ -175,7 +175,7 @@ namespace SharedLibrary.MongoDB
         /// </summary>
         /// <param name="page">page to be found in the collection</param>
         /// <param name="busyStatus">New Busy status</param>
-        public void ToggleBusypage (QueuedPage page, bool busyStatus)
+        public void ToggleBusyPage (QueuedPage page, bool busyStatus)
         {
             // Mongo Query
             var mongoQuery      = Query.EQ ("Url", page.Url);
@@ -216,6 +216,32 @@ namespace SharedLibrary.MongoDB
         public bool AddToStats(PageInfo pageStats)
         {
             return _database.GetCollection<PageInfo>(Consts.MONGO_STATS_COLLECTION).SafeInsert(pageStats);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pageToParse"></param>
+        /// <returns></returns>
+        public int PageRetries(QueuedPage page)
+        {
+            // Mongo Query
+            var mongoQuery = Query.EQ("Url", page.Url);
+
+            return _database.GetCollection<QueuedPage>(Consts.QUEUED_URLS_COLLECTION).FindOne(mongoQuery).Tries;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="page"></param>
+        public void IncrisePageTriesCounter(QueuedPage page)
+        {
+            // Mongo Query
+            var mongoQuery = Query.EQ("Url", page.Url);
+            var updateStatement = Update.Inc("Tries", 1);
+
+            var mongoResponse = _database.GetCollection<QueuedPage>(Consts.QUEUED_URLS_COLLECTION).FindAndModify(mongoQuery, null, updateStatement, false);
         }
     }
 }

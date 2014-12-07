@@ -13,5 +13,6 @@ namespace SharedLibrary
         public string Domain { get; set; }
         public string Url    { get; set; }
         public bool   IsBusy { get; set; }
+        public int    Tries  { get; set; }
     }
 }

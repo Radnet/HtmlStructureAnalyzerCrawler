@@ -53,8 +53,8 @@ namespace SharedLibrary
             // Counting Internal and External Links
             foreach(var node in nodes)
             {
-                // If hef url has the domain, it's an internal link
-                if (node.GetAttributeValue("href", " ").Contains(domain))
+                // If is an internal link
+                if ( IsInternal(node.GetAttributeValue("href", " "), domain) )
                     InfoResults.InternalLinksCount++;
                 else
                     InfoResults.ExternalLinksCount++;
@@ -109,17 +109,84 @@ namespace SharedLibrary
             // Checking for nodes of Internal Links
             HtmlNodeCollection nodes = Map.DocumentNode.SelectNodes("//a/@href");
 
-            // Counting Internal and External Links
-            foreach (var node in nodes)
+            // Check if nodes is NOT empty
+            if (!(nodes == null || nodes.Count == 0))
             {
-                // If hef url has the domain, it's an internal link
-                if (node.GetAttributeValue("href", " ").Contains(domain))
+                // Counting Internal and External Links
+                foreach (var node in nodes)
                 {
-                    internalLinks.Add(node.GetAttributeValue("href", " "));
+                    string link = node.GetAttributeValue("href", " ");
+                    // If hef url has the domain, it's an internal link
+                    if (IsInternal(link, domain, out link))
+                    {
+                        internalLinks.Add(link);
+                    }
                 }
             }
 
             return internalLinks;
+        }
+
+        /// <summary>
+        /// Verify if an link is part of a domain
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="domain"></param>
+        /// <returns></returns>
+        public bool IsInternal(string url, string domain)
+        {
+            // If hef url has the domain, it's an internal link
+            if (url.Contains(domain))
+                return true;
+            else
+            {
+                // Try to get an internal link that does not contais and diret reference to domain
+                int indexOfFirtBar = url.IndexOf("/");
+                if (indexOfFirtBar > -1)
+                {
+                    string sufix = url.Substring(0, indexOfFirtBar + 1);
+                    // If the first part of the link(before '/') does NOT contains an.(dot) 
+                    // it means that this link is an reference for a page of the same domain 
+                    if (!sufix.Contains('.') && !sufix.Contains("http") && !sufix.Contains("https"))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        /// <summary>
+        ///  Verify if an link is part of a domain and treat it if necessary
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="domain"></param>
+        /// <param name="TreatedUrl">Treated Url</param>
+        /// <returns></returns>
+        public bool IsInternal(string url, string domain, out string TreatedUrl)
+        {
+            // If hef url has the domain, it's an internal link
+            if (url.Contains(domain))
+            {
+                TreatedUrl = url;
+                return true;
+            }
+            else if (IsInternal(url, domain))
+            {
+                TreatedUrl = domain + "/" + url;
+                return true;
+            }
+            else
+            {
+                TreatedUrl = url;
+                return false;
+            }
         }
     }
 }
