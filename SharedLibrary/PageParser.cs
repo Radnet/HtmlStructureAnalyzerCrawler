@@ -24,7 +24,7 @@ namespace SharedLibrary
 
             // Counting
             CountAllTags();
-            CountInternalAndExternalLinks(page.Domain);
+            CountInternalAndExternalLinks(page.Url);
 
             // Domain and URL
             InfoResults.Url = page.Url;
@@ -37,7 +37,7 @@ namespace SharedLibrary
         /// Count all internal and external links of the page
         /// </summary>
         /// <returns></returns>
-        private void CountInternalAndExternalLinks(string domain)
+        private void CountInternalAndExternalLinks(string originalUrl)
         {
             // Zeroing
             InfoResults.InternalLinksCount = 0;
@@ -54,7 +54,7 @@ namespace SharedLibrary
             foreach(var node in nodes)
             {
                 // If is an internal link
-                if ( IsInternal(node.GetAttributeValue("href", " "), domain) )
+                if ( IsInternal(node.GetAttributeValue("href", " "), originalUrl) )
                     InfoResults.InternalLinksCount++;
                 else
                     InfoResults.ExternalLinksCount++;
@@ -92,7 +92,7 @@ namespace SharedLibrary
         }
 
         /// <summary>
-        /// 
+        /// Get all intenal links on a page 
         /// </summary>
         /// <param name="response"></param>
         /// <returns></returns>
@@ -116,10 +116,11 @@ namespace SharedLibrary
                 foreach (var node in nodes)
                 {
                     string link = node.GetAttributeValue("href", " ");
-                    // If hef url has the domain, it's an internal link
-                    if (IsInternalAndTreat(link, domain, originalUrl, out link))
+                    
+                    // If it's an internal link
+                    if(IsInternal(link, originalUrl))
                     {
-                        internalLinks.Add(link);
+                        internalLinks.Add(getAbsoluteUrl(link, originalUrl));
                     }
                 }
             }
@@ -128,75 +129,53 @@ namespace SharedLibrary
         }
 
         /// <summary>
-        /// Verify if an link is internal and treat it if necessary
+        ///  Determines if a url is internal or not 
         /// </summary>
         /// <param name="url"></param>
         /// <param name="domain"></param>
-        /// <param name="treatedUrl"> string that contains the treated internal url of the domain </param>
         /// <returns></returns>
-        public bool IsInternalAndTreat(string url, string domain, string originalUrl, out string treatedUrl)
+        public bool IsInternal(string link, string originalUrl)
         {
-            // If hef url has the domain, it's an internal link
-            if (url.Contains(domain))
+            // Set Uris
+            Uri linkUri = new Uri(link, UriKind.RelativeOrAbsolute);
+            Uri originalUri = new Uri(originalUrl, UriKind.RelativeOrAbsolute);
+            
+            // Make it absolute if it's relative
+            if (!linkUri.IsAbsoluteUri)
             {
-                treatedUrl = url;
-                return true;
+                linkUri = new Uri(originalUri, linkUri);
             }
-            // Try to get an internal link that does not contais and diret reference to domain
-            else 
+
+            // If it's an internal link
+            if(linkUri.IsWellFormedOriginalString() && originalUri.IsBaseOf(linkUri))
             {
-                int indexOfFirstBar = url.IndexOf("/");
-                if (indexOfFirstBar > -1)
-                {
-                    string sufix = url.Substring(0, indexOfFirstBar + 1);
-
-                    // If url contains http or https, its an external link
-                    if (sufix.Contains("http") || sufix.Contains("https"))
-                    {
-                        treatedUrl = url;
-                        return false;
-                    }
-                    // it means that this link is an reference for a higher level page befor the original url
-                    // ex: href = "../xpto.hmtl"
-                    if (sufix.StartsWith(".."))
-                    {
-                        string uperLevel = originalUrl.Substring(0 , originalUrl.LastIndexOf("/"));
-                        if(uperLevel.Contains("/"))
-                        {
-                            uperLevel = uperLevel.Substring(0, originalUrl.LastIndexOf("/"));
-                        }
-                        treatedUrl = uperLevel + url.Remove(0,2); // url remove 2 dots
-                        return true;
-                    }
-                    // If there is nothing before the "/" it's a reference for a page in the domain root  
-                    // ex.: href = "/xpto.hmtl"
-                    else if (sufix.Length == 1)
-                    {
-                        treatedUrl = domain + url;
-                        return true;
-                    }
-                    else
-                    {
-                        treatedUrl = originalUrl.Substring(0, originalUrl.LastIndexOf("/") + 1) + url;
-                        return true;
-                    }
-                }
-                else
-                {
-                    // It's an anchor
-                    if (url[0] == '#')
-                    {
-                        treatedUrl = url;
-                        return false;
-                    }
-                    else
-                    {
-                        treatedUrl = originalUrl.Substring(0, originalUrl.LastIndexOf("/") + 1) + url;
-                        return true;
-                    }
-
-                }
+               return true;
             }
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// returns the absolute url from a relative url
+        /// </summary>
+        /// <param name="link"></param>
+        /// <param name="originalUrl"></param>
+        /// <returns></returns>
+        public string getAbsoluteUrl(string link, string originalUrl)
+        {
+            // Set Uris
+            Uri linkUri = new Uri(link, UriKind.RelativeOrAbsolute);
+            Uri originalUri = new Uri(originalUrl, UriKind.RelativeOrAbsolute);
+            
+            // Make it absolute if it's relative
+            if (!linkUri.IsAbsoluteUri)
+            {
+                linkUri = new Uri(originalUri, linkUri);
+            }
+
+            return linkUri.AbsoluteUri;
         }
     }
 }
