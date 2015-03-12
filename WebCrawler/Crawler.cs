@@ -168,7 +168,7 @@ namespace WebCrawler
                             }
                         }
 
-                        // Hiccup to avoid google blocking connections in case of heavy traffic from the same IP
+                        // Hiccup to avoid blocking connections in case of heavy traffic from the same IP
                         Thread.Sleep(Convert.ToInt32(waitTime));
                     }
                     else
@@ -180,7 +180,7 @@ namespace WebCrawler
 
                         //Parser Internal urls
                         PageParser parser = new PageParser();
-                        List<string> internalUrl = parser.GetInternalLinks(html, pageToParse.Domain);
+                        List<string> internalUrl = parser.GetInternalLinks(html, pageToParse.Domain, pageToParse.Url);
 
                         //Insert Internal urls in Queue to be processed
                         foreach (string internalLink in internalUrl)

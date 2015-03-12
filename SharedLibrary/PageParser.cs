@@ -96,7 +96,7 @@ namespace SharedLibrary
         /// </summary>
         /// <param name="response"></param>
         /// <returns></returns>
-        public List<string> GetInternalLinks(string page, string domain)
+        public List<string> GetInternalLinks(string page, string domain, string originalUrl)
         {
             // return obj
             List<string> internalLinks = new List<string>();
@@ -117,7 +117,7 @@ namespace SharedLibrary
                 {
                     string link = node.GetAttributeValue("href", " ");
                     // If hef url has the domain, it's an internal link
-                    if (IsInternal(link, domain, out link))
+                    if (IsInternalAndTreat(link, domain, originalUrl, out link))
                     {
                         internalLinks.Add(link);
                     }
@@ -128,64 +128,74 @@ namespace SharedLibrary
         }
 
         /// <summary>
-        /// Verify if an link is part of a domain
+        /// Verify if an link is internal and treat it if necessary
         /// </summary>
         /// <param name="url"></param>
         /// <param name="domain"></param>
+        /// <param name="treatedUrl"> string that contains the treated internal url of the domain </param>
         /// <returns></returns>
-        public bool IsInternal(string url, string domain)
+        public bool IsInternalAndTreat(string url, string domain, string originalUrl, out string treatedUrl)
         {
             // If hef url has the domain, it's an internal link
             if (url.Contains(domain))
-                return true;
-            else
             {
-                // Try to get an internal link that does not contais and diret reference to domain
-                int indexOfFirtBar = url.IndexOf("/");
-                if (indexOfFirtBar > -1)
+                treatedUrl = url;
+                return true;
+            }
+            // Try to get an internal link that does not contais and diret reference to domain
+            else 
+            {
+                int indexOfFirstBar = url.IndexOf("/");
+                if (indexOfFirstBar > -1)
                 {
-                    string sufix = url.Substring(0, indexOfFirtBar + 1);
-                    // If the first part of the link(before '/') does NOT contains an.(dot) 
-                    // it means that this link is an reference for a page of the same domain 
-                    if (!sufix.Contains('.') && !sufix.Contains("http") && !sufix.Contains("https"))
+                    string sufix = url.Substring(0, indexOfFirstBar + 1);
+
+                    // If url contains http or https, its an external link
+                    if (sufix.Contains("http") || sufix.Contains("https"))
                     {
+                        treatedUrl = url;
+                        return false;
+                    }
+                    // it means that this link is an reference for a higher level page befor the original url
+                    // ex: href = "../xpto.hmtl"
+                    if (sufix.StartsWith(".."))
+                    {
+                        string uperLevel = originalUrl.Substring(0 , originalUrl.LastIndexOf("/"));
+                        if(uperLevel.Contains("/"))
+                        {
+                            uperLevel = uperLevel.Substring(0, originalUrl.LastIndexOf("/"));
+                        }
+                        treatedUrl = uperLevel + url.Remove(0,2); // url remove 2 dots
+                        return true;
+                    }
+                    // If there is nothing before the "/" it's a reference for a page in the domain root  
+                    // ex.: href = "/xpto.hmtl"
+                    else if (sufix.Length == 1)
+                    {
+                        treatedUrl = domain + url;
                         return true;
                     }
                     else
                     {
-                        return false;
+                        treatedUrl = originalUrl.Substring(0, originalUrl.LastIndexOf("/") + 1) + url;
+                        return true;
                     }
                 }
                 else
                 {
-                    return false;
+                    // It's an anchor
+                    if (url[0] == '#')
+                    {
+                        treatedUrl = url;
+                        return false;
+                    }
+                    else
+                    {
+                        treatedUrl = originalUrl.Substring(0, originalUrl.LastIndexOf("/") + 1) + url;
+                        return true;
+                    }
+
                 }
-            }
-        }
-        /// <summary>
-        ///  Verify if an link is part of a domain and treat it if necessary
-        /// </summary>
-        /// <param name="url"></param>
-        /// <param name="domain"></param>
-        /// <param name="TreatedUrl">Treated Url</param>
-        /// <returns></returns>
-        public bool IsInternal(string url, string domain, out string TreatedUrl)
-        {
-            // If hef url has the domain, it's an internal link
-            if (url.Contains(domain))
-            {
-                TreatedUrl = url;
-                return true;
-            }
-            else if (IsInternal(url, domain))
-            {
-                TreatedUrl = domain + "/" + url;
-                return true;
-            }
-            else
-            {
-                TreatedUrl = url;
-                return false;
             }
         }
     }
