@@ -118,6 +118,7 @@ namespace WebCrawler
 
                 do // while (String.IsNullOrEmpty(html) || server.StatusCode != System.Net.HttpStatusCode.OK);
                 {
+                    Console.WriteLine("Geting HTML...");
                     // Get Page
                     html = server.Get(pageToParse.Url);
 
@@ -145,12 +146,15 @@ namespace WebCrawler
                             // Ckeck if maximmum of crawlers that tryed this page and did not succeeded to was reached.
                             if(mongoDB.PageRetries(pageToParse) >= 3)
                             {
+                                Console.WriteLine("This page is probably unreachable. Remove it from DB.");
                                 // Removing Page from the database (this the page may have expired)
                                 mongoDB.RemoveFromQueue(pageToParse);
+                                return;
                             }
-                            // Give up, and let other crawler try.
+                            // Give up and let other crawler try.
                             else 
                             {
+                                Console.WriteLine("Probably IP is blocked. Give up and let other crawler try.");
                                 return;
                             }
                         }
@@ -169,6 +173,7 @@ namespace WebCrawler
                         }
 
                         // Hiccup to avoid blocking connections in case of heavy traffic from the same IP
+                        Console.WriteLine("Hiccup to avoid blocking connections. WaitTime = " + waitTime);
                         Thread.Sleep(Convert.ToInt32(waitTime));
                     }
                     else
@@ -176,7 +181,10 @@ namespace WebCrawler
                         retryCounter = 0;
 
                         // Put page html on SQS Queue
+                        Console.WriteLine("Sending HTML to SQS...");
                         insetHtmlOnSQSQueue(pageToParse, html);
+
+                        // Save page on DB for future access if needed
 
                         //Parser Internal urls
                         PageParser parser = new PageParser();
@@ -198,6 +206,10 @@ namespace WebCrawler
                     }
                 }
                 while (String.IsNullOrEmpty(html) || server.StatusCode != System.Net.HttpStatusCode.OK); 
+            }
+            else
+            {
+                Console.WriteLine("Page Already Processed.");
             }
         }
 
