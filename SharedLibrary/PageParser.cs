@@ -120,12 +120,32 @@ namespace SharedLibrary
                     // If it's an internal link
                     if(IsInternal(link, originalUrl))
                     {
+                        RemoveAnchor(link, out link);
                         internalLinks.Add(getAbsoluteUrl(link, originalUrl));
                     }
                 }
             }
 
             return internalLinks;
+        }
+
+        /// <summary>
+        /// Removes the Anchor of a link
+        /// </summary>
+        /// <param name="link"></param>
+        private bool RemoveAnchor(string link, out string linkOut)
+        {
+            if(link.Contains('#'))
+            {
+                // Anchor composition of a link is like "href = http://www.xpto.com/xyz#anchor1"
+                linkOut = link.Split('#')[0];
+                return true;
+            }
+            else
+            {
+                linkOut = link;
+                return false;
+            }
         }
 
         /// <summary>

@@ -3,6 +3,7 @@ using Amazon.SQS.Model;
 using BDC.BDCCommons;
 using Newtonsoft.Json;
 using SharedLibrary;
+using SharedLibrary.Helpers;
 using SharedLibrary.Models;
 using SharedLibrary.MongoDB;
 using System;
@@ -188,9 +189,9 @@ namespace WebCrawler
                         Console.WriteLine("Sending HTML to SQS...");
                         insetHtmlOnSQSQueue(pageToParse, html);
 
-                        // Save page on DB for future access if needed
+                        // Save page on DB for future access if needed (html will be zipped for less use of storage)
                         Console.WriteLine("Adding to HtmlStorage...");
-                        mongoDB.AddToHtmlStorage(new FullPage { Domain = pageToParse.Domain, Html = html, Url = pageToParse.Url });
+                        mongoDB.AddToHtmlStorage(new FullPage { Domain = pageToParse.Domain, Html = ZipHelper.Zip(html), Url = pageToParse.Url });
 
                         //Parser Internal urls
                         Console.WriteLine("Getting internal links...");
