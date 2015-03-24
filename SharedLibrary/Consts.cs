@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,17 +13,17 @@ namespace SharedLibrary
         public static readonly string TAG_PREFIX = "//";
 
         // MongoDB - Remote Server
-        public static readonly string MONGO_SERVER           = "ec2-54-85-5-69.compute-1.amazonaws.com";
-        public static readonly string MONGO_PORT             = "27017";
-        public static readonly string MONGO_USER             = "sysdba";
-        public static readonly string MONGO_PASS             = "crawlerdbadministrator";
-        public static readonly string MONGO_DATABASE         = "UrlsControl";
-        public static readonly string MONGO_COLLECTION       = "ProcessedUrls";
-        public static readonly string MONGO_STATS_COLLECTION = "Stats";
-        public static readonly string QUEUED_URLS_COLLECTION = "UrlQueue";
-        public static readonly string HTML_STORAGE           = "HtmlStorage";
-        public static readonly string MONGO_AUTH_DB          = "admin";
-        public static readonly int    MONGO_TIMEOUT          = 10000;
+        public static readonly string MONGO_SERVER                    = ConfigurationSettings.AppSettings.Get("MONGO_SERVER");
+        public static readonly string MONGO_PORT                      = ConfigurationSettings.AppSettings.Get("MONGO_PORT");
+        public static readonly string MONGO_USER                      = ConfigurationSettings.AppSettings.Get("MONGO_USER");
+        public static readonly string MONGO_PSW                       = ConfigurationSettings.AppSettings.Get("MONGO_PSW");
+        public static readonly string MONGO_DATABASE                  = ConfigurationSettings.AppSettings.Get("MONGO_DATABASE");
+        public static readonly string MONGO_PROCESSED_URLS_COLLECTION = ConfigurationSettings.AppSettings.Get("MONGO_PROCESSED_URLS_COLLECTION");
+        public static readonly string MONGO_STATS_COLLECTION          = ConfigurationSettings.AppSettings.Get("MONGO_STATS_COLLECTION");
+        public static readonly string MONGO_QUEUED_URLS_COLLECTION    = ConfigurationSettings.AppSettings.Get("MONGO_QUEUED_URLS_COLLECTION");
+        public static readonly string MONGO_HTML_STORAGE_COLLECTION   = ConfigurationSettings.AppSettings.Get("MONGO_HTML_STORAGE_COLLECTION");
+        public static readonly string MONGO_AUTH_DB                   = ConfigurationSettings.AppSettings.Get("MONGO_AUTH_DB");
+        public static readonly int    MONGO_TIMEOUT                   = Int32.Parse(ConfigurationSettings.AppSettings.Get("MONGO_TIMEOUT"));
 
         // AWS
         //User props

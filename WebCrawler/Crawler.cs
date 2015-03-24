@@ -31,7 +31,7 @@ namespace WebCrawler
 
             // Configuring MongoDB Wrapper
             string fullServerAddress = String.Join(":", Consts.MONGO_SERVER, Consts.MONGO_PORT);
-            mongoDB.ConfigureDatabase(Consts.MONGO_USER, Consts.MONGO_PASS, Consts.MONGO_AUTH_DB, fullServerAddress, Consts.MONGO_TIMEOUT, Consts.MONGO_DATABASE, Consts.MONGO_COLLECTION);
+            mongoDB.ConfigureDatabase(Consts.MONGO_USER, Consts.MONGO_PSW, Consts.MONGO_AUTH_DB, fullServerAddress, Consts.MONGO_TIMEOUT, Consts.MONGO_DATABASE, Consts.MONGO_PROCESSED_URLS_COLLECTION);
 
             // Retry Counter (Used for exponential wait increasing logic)
             int retryCounter = 0;
