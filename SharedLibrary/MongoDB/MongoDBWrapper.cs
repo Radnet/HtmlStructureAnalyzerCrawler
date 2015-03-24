@@ -243,5 +243,15 @@ namespace SharedLibrary.MongoDB
 
             var mongoResponse = _database.GetCollection<QueuedPage>(Consts.QUEUED_URLS_COLLECTION).FindAndModify(mongoQuery, null, updateStatement, false);
         }
+
+        /// <summary>
+        ///  Add Html to HtmlStorage Collection
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
+        public bool AddToHtmlStorage(FullPage page)
+        {
+            return _database.GetCollection<FullPage>(Consts.HTML_STORAGE).SafeInsert(page);
+        }
     }
 }

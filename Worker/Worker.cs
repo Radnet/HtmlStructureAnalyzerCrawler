@@ -21,6 +21,7 @@ namespace WebWorker
         private static MongoDBWrapper mongoDB = new MongoDBWrapper();
         static void Main(string[] args)
         {
+            Console.WriteLine("Worker Started");
             // Configuring Log Object Threshold
             LogWriter.Threshold = TLogEventLevel.Information;
             LogWriter.Info("Worker Started");
@@ -37,17 +38,33 @@ namespace WebWorker
             WebRequests server = new WebRequests();
 
             try
-            {  
+            {
+                Console.WriteLine();
+                Console.WriteLine("##################################");
+                Console.WriteLine();
+                Console.WriteLine("Get html to parse from SQS...");
+
                 FullPage fullPageObj;
+                string actualReceiptHandle;
                 
-                while(getHTMLFromSQSQueue(out fullPageObj))
+                while(GetHTMLFromSQSQueue(out fullPageObj, out actualReceiptHandle))
                 {
+                    Console.WriteLine("Parse html of \"" + fullPageObj.Url + "\"");
                     // Parsing Page Tags
                     PageInfo parsedPage = parser.ParsePageStats(fullPageObj);
 
+                    Console.WriteLine("Add parsed info to DB...");
                     // Save parsed page on stats DB
                     mongoDB.AddToStats(parsedPage);
+
+                    // Delete Message from SQS
+                    Console.WriteLine("Deleting the message from SQS.");
+                    DeleteSQSMessage(actualReceiptHandle);
                 }
+                Console.WriteLine();
+                Console.WriteLine("##################################");
+                Console.WriteLine();
+                Console.WriteLine("No more messages on SQS finish.");
             }
             catch (Exception ex)
             {
@@ -60,7 +77,7 @@ namespace WebWorker
         /// </summary>
         /// <param name="fullPageObj"></param>
         /// <returns></returns>
-        private static bool getHTMLFromSQSQueue(out FullPage fullPageObj)
+        private static bool GetHTMLFromSQSQueue(out FullPage fullPageObj, out string actualReceiptHandle)
         {
             // Receive Page from SQS
             // Preparing SQS 
@@ -70,22 +87,41 @@ namespace WebWorker
             //Receiving a message
             ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest();
             receiveMessageRequest.QueueUrl = Consts.SQS_QUEUE_URL;
-            receiveMessageRequest.MaxNumberOfMessages = 1;
+            receiveMessageRequest.MaxNumberOfMessages = 1; // MAX OF 1 MESSAGE A TIME
             ReceiveMessageResponse receiveMessageResponse = amazonSQSClient.ReceiveMessage(receiveMessageRequest);
 
             // Verify if an message was received
             if (receiveMessageResponse.Messages.Count > 0)
             {
                 // Deserializing message
-                fullPageObj = JsonConvert.DeserializeObject<FullPage>(receiveMessageResponse.Messages.First().ToString());
+                fullPageObj = JsonConvert.DeserializeObject<FullPage>(receiveMessageResponse.Messages.First().Body);
+                actualReceiptHandle = receiveMessageResponse.Messages.First().ReceiptHandle;
                 return true;
             }
             // No message found on Queue
             else
             {
                 fullPageObj = null;
+                actualReceiptHandle = null;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="actualReceiptHandle"></param>
+        private static void DeleteSQSMessage(string actualReceiptHandle)
+        {
+            // Deleting a message from SQS
+            // Preparing SQS 
+            // SQS uses N.Virginia as default
+            AmazonSQSClient amazonSQSClient = new AmazonSQSClient(Consts.USER_ACCESS_KEY_ID, Consts.USER_SECRET_ACCESS_KEY, Amazon.RegionEndpoint.USEast1);
+
+            DeleteMessageRequest deleteRequest = new DeleteMessageRequest();
+            deleteRequest.QueueUrl = Consts.SQS_QUEUE_URL;
+            deleteRequest.ReceiptHandle = actualReceiptHandle;
+            amazonSQSClient.DeleteMessage(deleteRequest);
         }
     }
 }

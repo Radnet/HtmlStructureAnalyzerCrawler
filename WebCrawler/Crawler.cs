@@ -40,7 +40,11 @@ namespace WebCrawler
 
             while(true)
             {
-                Console.WriteLine("Get page to parse.");
+                Console.WriteLine();
+                Console.WriteLine("##################################");
+                Console.WriteLine();
+                Console.WriteLine("Get new url to parse from queue.");
+
                 if (GetNonBusyQueuedPage(out pageToParse))
                 {
                     Console.WriteLine("Crawl : " + pageToParse.Url);
@@ -185,8 +189,11 @@ namespace WebCrawler
                         insetHtmlOnSQSQueue(pageToParse, html);
 
                         // Save page on DB for future access if needed
+                        Console.WriteLine("Adding to HtmlStorage...");
+                        mongoDB.AddToHtmlStorage(new FullPage { Domain = pageToParse.Domain, Html = html, Url = pageToParse.Url });
 
                         //Parser Internal urls
+                        Console.WriteLine("Getting internal links...");
                         PageParser parser = new PageParser();
                         List<string> internalUrl = parser.GetInternalLinks(html, pageToParse.Domain, pageToParse.Url);
 
@@ -202,6 +209,7 @@ namespace WebCrawler
                         }
 
                         //Remove page from Queue and insert on Processed collection
+                        Console.WriteLine("Changing page status to processed...");
                         ChangePageStatusToProcessed(pageToParse);
                     }
                 }
