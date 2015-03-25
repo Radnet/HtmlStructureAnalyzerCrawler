@@ -27,9 +27,9 @@ namespace SharedLibrary
 
         // AWS
         //User props
-        public static readonly string USER_NAME              = "HtmlQueue";
-        public static readonly string USER_ACCESS_KEY_ID     = "AKIAJ353T6VIOM3EWJNA";
-        public static readonly string USER_SECRET_ACCESS_KEY = "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";
+        public static readonly string USER_NAME                       = ConfigurationManager.AppSettings.Get("USER_NAME");
+        public static readonly string USER_ACCESS_KEY_ID              = ConfigurationManager.AppSettings.Get("USER_ACCESS_KEY_ID");
+        public static readonly string USER_SECRET_ACCESS_KEY          = ConfigurationManager.AppSettings.Get("USER_SECRET_ACCESS_KEY");
         //QUEUE props
         public static readonly string SQS_QUEUE_URL = "https://sqs.us-east-1.amazonaws.com/461546948012/HtmlQueue";
     }

@@ -228,5 +228,6 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
-SharedLibrary/SharedLibraryConfig.config
-SharedLibrary/SharedLibraryConfig.config
+
+Worker/App.config
+WebCrawler/App.config

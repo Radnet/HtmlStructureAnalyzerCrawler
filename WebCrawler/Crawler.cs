@@ -31,6 +31,7 @@ namespace WebCrawler
             Console.WriteLine("Open MongoDB connection...");
 
             // Configuring MongoDB Wrapper
+            //Consts consts = new Consts();
             string fullServerAddress = String.Join(":", Consts.MONGO_SERVER, Consts.MONGO_PORT);
             mongoDB.ConfigureDatabase(Consts.MONGO_USER, Consts.MONGO_PSW, Consts.MONGO_AUTH_DB, fullServerAddress, Consts.MONGO_TIMEOUT, Consts.MONGO_DATABASE, Consts.MONGO_PROCESSED_URLS_COLLECTION);
 
