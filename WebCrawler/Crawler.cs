@@ -40,6 +40,7 @@ namespace WebCrawler
 
             // Crawl while there are urls in Queue
             QueuedPage pageToParse;
+            CoreQueuedPage corePageToParse;
 
             while(true)
             {
@@ -55,9 +56,10 @@ namespace WebCrawler
                     // Hiccup to avoid domain blocking connections in case of heavy traffic from the same IP
                     Thread.Sleep(Convert.ToInt32(TimeSpan.FromSeconds(15).TotalMilliseconds));
                 }
-                else if ( GetBootstrapPage(out pageToParse) )
+                else if (GetBootstrapPage(out corePageToParse))
                 {
-
+                   // Insert to url queue
+                    InsertPageOnURLQueue(corePageToParse.Url, corePageToParse.Domain);
                 }
                 else
                 {
@@ -114,20 +116,20 @@ namespace WebCrawler
         /// </summary>
         /// <param name="pageToParse"></param>
         /// <returns></returns>
-        private static bool GetBootstrapPage(out QueuedPage pageToParse)
+        private static bool GetBootstrapPage(out CoreQueuedPage pageToParse)
         {
             // If bootstrap flag is active
             if(Boolean.Parse(ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_FLAG")))
             {
                 // Get bootstrap page
-                pageToParse        = new QueuedPage();
-                pageToParse        = new QueuedPage();
+                pageToParse        = new CoreQueuedPage();
+                pageToParse        = new CoreQueuedPage();
                 pageToParse.Url    = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_URL");
                 pageToParse.Domain = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_DOMAIN");
 
                 // Set bootstrap flag to false to mark bootstrap as already used
                 string appPath                  = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                string configFile               = System.IO.Path.Combine(appPath, "App.config");
+                string configFile               = System.IO.Path.Combine(appPath, "WebCrawler.exe.config");
                 var configFileMap               = new ExeConfigurationFileMap();
                 configFileMap.ExeConfigFilename = configFile;
                 Configuration config            = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);

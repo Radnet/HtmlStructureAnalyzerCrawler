@@ -7,12 +7,16 @@ using System.Threading.Tasks;
 
 namespace SharedLibrary
 {
-    public class QueuedPage
+    public class QueuedPage : CoreQueuedPage
     {
         public ObjectId _id  { get; set; }
+
+    }
+    public class CoreQueuedPage
+    {
         public string Domain { get; set; }
-        public string Url    { get; set; }
-        public bool   IsBusy { get; set; }
-        public int    Tries  { get; set; }
+        public string Url { get; set; }
+        public bool IsBusy { get; set; }
+        public int Tries { get; set; }
     }
 }
