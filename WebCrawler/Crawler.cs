@@ -8,6 +8,7 @@ using SharedLibrary.Models;
 using SharedLibrary.MongoDB;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -44,14 +45,18 @@ namespace WebCrawler
                 Console.WriteLine();
                 Console.WriteLine("##################################");
                 Console.WriteLine();
-                Console.WriteLine("Get new url to parse from queue.");
+                Console.WriteLine("Get new url to parse.");
 
-                if (GetNonBusyQueuedPage(out pageToParse))
+                if ( GetNonBusyQueuedPage(out pageToParse) )
                 {
                     Console.WriteLine("Crawl : " + pageToParse.Url);
                     CrawlUrls(pageToParse);
                     // Hiccup to avoid domain blocking connections in case of heavy traffic from the same IP
                     Thread.Sleep(Convert.ToInt32(TimeSpan.FromSeconds(15).TotalMilliseconds));
+                }
+                else if ( GetBootstrapPage(out pageToParse) )
+                {
+
                 }
                 else
                 {
@@ -101,6 +106,42 @@ namespace WebCrawler
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        ///  Get bootstrapper page from App.config
+        /// </summary>
+        /// <param name="pageToParse"></param>
+        /// <returns></returns>
+        private static bool GetBootstrapPage(out QueuedPage pageToParse)
+        {
+            // If bootstrap flag is active
+            if(Boolean.Parse(ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_FLAG")))
+            {
+                // Get bootstrap page
+                pageToParse        = new QueuedPage();
+                pageToParse        = new QueuedPage();
+                pageToParse.Url    = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_URL");
+                pageToParse.Domain = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_DOMAIN");
+
+                // Set bootstrap flag to false to mark bootstrap as already used
+                string appPath                  = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                string configFile               = System.IO.Path.Combine(appPath, "App.config");
+                var configFileMap               = new ExeConfigurationFileMap();
+                configFileMap.ExeConfigFilename = configFile;
+                Configuration config            = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
+                // Change flag value
+                config.AppSettings.Settings["BOOTSTRAPPER_FLAG"].Value = "false";
+                config.Save(); 
+
+                return true;
+            }
+            // Flag is false, bootstrapper page has already been used
+            else
+            {
+                pageToParse = null;
+                return false;
+            }
         }
 
         /// <summary>
