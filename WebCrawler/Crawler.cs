@@ -288,8 +288,9 @@ namespace WebCrawler
             sendMessageRequest.QueueUrl           = Consts.SQS_QUEUE_URL; //URL from initial queue creation
             sendMessageRequest.MessageBody        = JsonConvert.SerializeObject(pageToSQS);
             
-            //send
-            amazonSQSClient.SendMessage(sendMessageRequest);
+            //send message if html is lower than 255 KB
+            if(System.Text.ASCIIEncoding.Unicode.GetByteCount(html) < 255000)
+                amazonSQSClient.SendMessage(sendMessageRequest);
             
         }
 
