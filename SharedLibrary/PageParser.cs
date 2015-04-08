@@ -156,20 +156,29 @@ namespace SharedLibrary
         /// <returns></returns>
         public bool IsInternal(string link, string originalUrl)
         {
-            // Set Uris
-            Uri linkUri = new Uri(link, UriKind.RelativeOrAbsolute);
-            Uri originalUri = new Uri(originalUrl, UriKind.RelativeOrAbsolute);
-            
-            // Make it absolute if it's relative
-            if (!linkUri.IsAbsoluteUri)
+            Uri uriResult;
+            // Verify link integrity
+            if (Uri.TryCreate(link, UriKind.Absolute, out uriResult) && uriResult.Scheme == Uri.UriSchemeHttp)
             {
-                linkUri = new Uri(originalUri, linkUri);
-            }
+                // Set Uris
+                Uri linkUri = new Uri(link, UriKind.RelativeOrAbsolute);
+                Uri originalUri = new Uri(originalUrl, UriKind.RelativeOrAbsolute);
 
-            // If it's an internal link
-            if(linkUri.IsWellFormedOriginalString() && originalUri.IsBaseOf(linkUri))
-            {
-               return true;
+                // Make it absolute if it's relative
+                if (!linkUri.IsAbsoluteUri)
+                {
+                    linkUri = new Uri(originalUri, linkUri);
+                }
+
+                // If it's an internal link
+                if (linkUri.IsWellFormedOriginalString() && originalUri.IsBaseOf(linkUri))
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
             }
             else
             {
