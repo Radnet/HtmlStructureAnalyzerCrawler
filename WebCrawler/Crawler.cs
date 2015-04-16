@@ -174,6 +174,12 @@ namespace WebCrawler
                     // Sanity Check
                     if (String.IsNullOrEmpty(html) || server.StatusCode != System.Net.HttpStatusCode.OK)
                     {
+                        if (server.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            Console.WriteLine("Page not Found! Remove it from Queue.");
+                            mongoDB.RemoveFromQueue(pageToParse);
+                            break;
+                        }
                         LogWriter.Info("Error opening page : " + pageToParse.Url);
 
                         // Inc. retry counter
@@ -240,17 +246,17 @@ namespace WebCrawler
                         //Parser Internal urls
                         Console.WriteLine("Getting internal links...");
                         PageParser parser = new PageParser();
-                        List<string> internalUrl = parser.GetInternalLinks(html, pageToParse.Domain, pageToParse.Url);
+                        List<string> internalLinksList = parser.GetInternalLinks(html, pageToParse.Domain, pageToParse.Url);
+                        Console.WriteLine("(" + internalLinksList.Count + ") internal links founded.");
 
                         //Insert Internal urls in Queue to be processed
-                        foreach (string internalLink in internalUrl)
+                        foreach (string internalLink in internalLinksList)
                         {
                             // Verify if url is NOT alredy on Queue or processed
                             if (!mongoDB.IspageOnQueue(internalLink) && !mongoDB.IsPageProcessed(internalLink))
                             {
                                 InsertPageOnURLQueue(internalLink, pageToParse.Domain);
                             }
-
                         }
 
                         //Remove page from Queue and insert on Processed collection

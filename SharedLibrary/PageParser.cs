@@ -53,12 +53,35 @@ namespace SharedLibrary
             // Counting Internal and External Links
             foreach(var node in nodes)
             {
-                // If is an internal link
-                if ( IsInternal(node.GetAttributeValue("href", " "), originalUrl) )
-                    InfoResults.InternalLinksCount++;
-                else
-                    InfoResults.ExternalLinksCount++;
+                string link = node.GetAttributeValue("href", " ");
+                // Verify integrity
+                if (IsLinkIngrityOk(link))
+                {
+                    // If is an internal link
+                    if (IsInternal(link, originalUrl))
+                        InfoResults.InternalLinksCount++;
+                    else
+                        InfoResults.ExternalLinksCount++;
+                }
             }
+        }
+
+        /// <summary>
+        /// Verify link integrity
+        /// </summary>
+        /// <param name="link"></param>
+        /// <returns></returns>
+        private bool IsLinkIngrityOk(string link)
+        {
+            // Normalize link
+            link = link.Trim();
+
+            // Verify link integrity
+            if (link.Contains(' '))
+            {
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -116,16 +139,18 @@ namespace SharedLibrary
                 foreach (var node in nodes)
                 {
                     string link = node.GetAttributeValue("href", " ");
-                    
-                    // If it's an internal link
-                    if(IsInternal(link, originalUrl))
+                    // Verify integrity
+                    if (IsLinkIngrityOk(link))
                     {
-                        RemoveAnchor(link, out link);
-                        internalLinks.Add(getAbsoluteUrl(link, originalUrl));
+                        // If it's an internal link
+                        if (IsInternal(link, originalUrl))
+                        {
+                            RemoveAnchor(link, out link);
+                            internalLinks.Add(getAbsoluteUrl(link, originalUrl));
+                        }
                     }
                 }
             }
-
             return internalLinks;
         }
 
@@ -156,29 +181,23 @@ namespace SharedLibrary
         /// <returns></returns>
         public bool IsInternal(string link, string originalUrl)
         {
-            Uri uriResult;
-            // Verify link integrity
-            if (Uri.TryCreate(link, UriKind.Absolute, out uriResult) && uriResult.Scheme == Uri.UriSchemeHttp)
+            // Normalize link
+            link = link.Trim();
+ 
+            // Set Uris
+            Uri linkUri = new Uri(link, UriKind.RelativeOrAbsolute);
+            Uri originalUri = new Uri(originalUrl, UriKind.RelativeOrAbsolute);
+
+            // Make it absolute if it's relative
+            if (!linkUri.IsAbsoluteUri)
             {
-                // Set Uris
-                Uri linkUri = new Uri(link, UriKind.RelativeOrAbsolute);
-                Uri originalUri = new Uri(originalUrl, UriKind.RelativeOrAbsolute);
+                linkUri = new Uri(originalUri, linkUri);
+            }
 
-                // Make it absolute if it's relative
-                if (!linkUri.IsAbsoluteUri)
-                {
-                    linkUri = new Uri(originalUri, linkUri);
-                }
-
-                // If it's an internal link
-                if (linkUri.IsWellFormedOriginalString() && originalUri.IsBaseOf(linkUri))
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+            // If it's an internal link
+            if (linkUri.IsWellFormedOriginalString() && originalUri.IsBaseOf(linkUri))
+            {
+                return true;
             }
             else
             {
