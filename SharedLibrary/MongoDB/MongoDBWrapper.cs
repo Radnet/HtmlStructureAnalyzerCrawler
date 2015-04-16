@@ -253,5 +253,30 @@ namespace SharedLibrary.MongoDB
         {
             return _database.GetCollection<FullPage>(Consts.MONGO_HTML_STORAGE_COLLECTION).SafeInsert(page);
         }
+
+        public bool GetBootstrapperPage(out CoreQueuedPage page)
+        {
+            page = new CoreQueuedPage();
+
+            // Mongo Query
+            var mongoQuery      = Query.EQ("UsedFlag", false);
+            var updateStatement = Update.Set("UsedFlag", true);
+
+            // Get bootstrapper page
+            var mongoResponse = _database.GetCollection<Bootstrapper>(Consts.MONGO_BOOTSTRAPPER_COLLECTION).FindAndModify(mongoQuery, null, updateStatement, false);
+
+            // Checking for query error or no bootstrapper found
+            if (mongoResponse == null || mongoResponse.Response == null || mongoResponse.ModifiedDocument == null)
+            {
+                return false;
+            }
+
+            // Returns the page
+            Bootstrapper botPage = BsonSerializer.Deserialize<Bootstrapper>(mongoResponse.ModifiedDocument);
+            page.Url    = botPage.Url;
+            page.IsBusy = botPage.IsBusy;
+            page.Domain = botPage.Domain;
+            return true;
+        }
     }
 }

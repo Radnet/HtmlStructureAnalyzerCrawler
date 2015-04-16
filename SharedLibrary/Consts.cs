@@ -21,6 +21,7 @@ namespace SharedLibrary
         public static readonly string MONGO_PROCESSED_URLS_COLLECTION = ConfigurationManager.AppSettings.Get("MONGO_PROCESSED_URLS_COLLECTION");
         public static readonly string MONGO_STATS_COLLECTION          = ConfigurationManager.AppSettings.Get("MONGO_STATS_COLLECTION");
         public static readonly string MONGO_QUEUED_URLS_COLLECTION    = ConfigurationManager.AppSettings.Get("MONGO_QUEUED_URLS_COLLECTION");
+        public static readonly string MONGO_BOOTSTRAPPER_COLLECTION   = ConfigurationManager.AppSettings.Get("MONGO_BOOTSTRAPPER_COLLECTION");
         public static readonly string MONGO_HTML_STORAGE_COLLECTION   = ConfigurationManager.AppSettings.Get("MONGO_HTML_STORAGE_COLLECTION");
         public static readonly string MONGO_AUTH_DB                   = ConfigurationManager.AppSettings.Get("MONGO_AUTH_DB");
         public static readonly int    MONGO_TIMEOUT                   = Int32.Parse(ConfigurationManager.AppSettings.Get("MONGO_TIMEOUT"));

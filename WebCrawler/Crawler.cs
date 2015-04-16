@@ -56,8 +56,14 @@ namespace WebCrawler
                     // Hiccup to avoid domain blocking connections in case of heavy traffic from the same IP
                     Thread.Sleep(Convert.ToInt32(TimeSpan.FromSeconds(15).TotalMilliseconds));
                 }
-                else if (GetBootstrapPage(out corePageToParse))
+                else if (mongoDB.GetBootstrapperPage(out corePageToParse))
                 {
+                    Console.WriteLine("##################################");
+                    Console.WriteLine();
+                    Console.WriteLine("Bootstrapper page found and added to queue.");
+                    Console.WriteLine();
+                    Console.WriteLine("##################################");
+                    Console.WriteLine();
                    // Insert to url queue
                     InsertPageOnURLQueue(corePageToParse.Url, corePageToParse.Domain);
                 }
@@ -116,36 +122,36 @@ namespace WebCrawler
         /// </summary>
         /// <param name="pageToParse"></param>
         /// <returns></returns>
-        private static bool GetBootstrapPage(out CoreQueuedPage pageToParse)
-        {
-            // If bootstrap flag is active
-            if(Boolean.Parse(ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_FLAG")))
-            {
-                // Get bootstrap page
-                pageToParse        = new CoreQueuedPage();
-                pageToParse        = new CoreQueuedPage();
-                pageToParse.Url    = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_URL");
-                pageToParse.Domain = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_DOMAIN");
+        //private static bool GetBootstrapPage(out CoreQueuedPage pageToParse)
+        //{
+        //    // If bootstrap flag is active
+        //    if(Boolean.Parse(ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_FLAG")))
+        //    {
+        //        // Get bootstrap page
+        //        pageToParse        = new CoreQueuedPage();
+        //        pageToParse        = new CoreQueuedPage();
+        //        pageToParse.Url    = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_URL");
+        //        pageToParse.Domain = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_DOMAIN");
 
-                // Set bootstrap flag to false to mark bootstrap as already used
-                string appPath                  = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                string configFile               = System.IO.Path.Combine(appPath, "WebCrawler.exe.config");
-                var configFileMap               = new ExeConfigurationFileMap();
-                configFileMap.ExeConfigFilename = configFile;
-                Configuration config            = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
-                // Change flag value
-                config.AppSettings.Settings["BOOTSTRAPPER_FLAG"].Value = "false";
-                config.Save(); 
+        //        // Set bootstrap flag to false to mark bootstrap as already used
+        //        string appPath                  = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+        //        string configFile               = System.IO.Path.Combine(appPath, "WebCrawler.exe.config");
+        //        var configFileMap               = new ExeConfigurationFileMap();
+        //        configFileMap.ExeConfigFilename = configFile;
+        //        Configuration config            = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
+        //        // Change flag value
+        //        config.AppSettings.Settings["BOOTSTRAPPER_FLAG"].Value = "false";
+        //        config.Save(); 
 
-                return true;
-            }
-            // Flag is false, bootstrapper page has already been used
-            else
-            {
-                pageToParse = null;
-                return false;
-            }
-        }
+        //        return true;
+        //    }
+        //    // Flag is false, bootstrapper page has already been used
+        //    else
+        //    {
+        //        pageToParse = null;
+        //        return false;
+        //    }
+        //}
 
         /// <summary>
         /// 

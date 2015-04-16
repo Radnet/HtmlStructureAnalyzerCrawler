@@ -194,8 +194,8 @@ namespace SharedLibrary
                 linkUri = new Uri(originalUri, linkUri);
             }
 
-            // If it's an internal link
-            if (linkUri.IsWellFormedOriginalString() && originalUri.IsBaseOf(linkUri))
+            // If it's an internal link (Has the same Host)
+            if (originalUri.Host.Equals(linkUri.Host))
             {
                 return true;
             }
