@@ -54,6 +54,7 @@ namespace WebCrawler
                     Console.WriteLine("Crawl : " + pageToParse.Url);
                     CrawlUrls(pageToParse);
                     // Hiccup to avoid domain blocking connections in case of heavy traffic from the same IP
+                    Console.WriteLine("Hiccup to avoid IP blocking");
                     Thread.Sleep(Convert.ToInt32(TimeSpan.FromSeconds(15).TotalMilliseconds));
                 }
                 else if (mongoDB.GetBootstrapperPage(out corePageToParse))
