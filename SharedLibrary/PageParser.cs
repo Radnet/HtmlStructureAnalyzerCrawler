@@ -183,9 +183,18 @@ namespace SharedLibrary
         {
             // Normalize link
             link = link.Trim();
- 
+            Uri linkUri;
+
             // Set Uris
-            Uri linkUri = new Uri(link, UriKind.RelativeOrAbsolute);
+            try
+            {
+                linkUri = new Uri(link, UriKind.RelativeOrAbsolute);
+            }
+            catch(UriFormatException e)
+            {
+                return false;
+            }
+
             Uri originalUri = new Uri(originalUrl, UriKind.RelativeOrAbsolute);
 
             // Make it absolute if it's relative
