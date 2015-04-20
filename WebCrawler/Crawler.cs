@@ -253,7 +253,7 @@ namespace WebCrawler
                         Console.WriteLine("Getting internal links...");
                         PageParser parser = new PageParser();
                         List<string> internalLinksList = parser.GetInternalLinks(html, pageToParse.Domain, pageToParse.Url);
-                        Console.WriteLine("(" + internalLinksList.Count + ") internal links founded.");
+                        Console.WriteLine("(" + internalLinksList.Count + ") internal links found.");
 
                         //Insert Internal urls in Queue to be processed
                         foreach (string internalLink in internalLinksList)
