@@ -20,86 +20,102 @@ namespace WebCrawler
     class Crawler
     {
         // MongoDB Helpers
-        private static MongoDBWrapper mongoDB = new MongoDBWrapper();
+        private static MongoDBWrapper mongoDB = new MongoDBWrapper ();
 
         static void Main(string[] args)
         {
             // Configuring Log Object Threshold
             LogWriter.Threshold = TLogEventLevel.Information;
-            LogWriter.Info("Worker Started");
+            LogWriter.Info ("Worker Started");
 
-            Console.WriteLine("Open MongoDB connection...");
+            Console.WriteLine ("Open MongoDB connection...");
 
             // Configuring MongoDB Wrapper
             //Consts consts = new Consts();
-            string fullServerAddress = String.Join(":", Consts.MONGO_SERVER, Consts.MONGO_PORT);
-            mongoDB.ConfigureDatabase(Consts.MONGO_USER, Consts.MONGO_PSW, Consts.MONGO_AUTH_DB, fullServerAddress, Consts.MONGO_TIMEOUT, Consts.MONGO_DATABASE, Consts.MONGO_PROCESSED_URLS_COLLECTION);
+            string fullServerAddress = String.Join (":", Consts.MONGO_SERVER, Consts.MONGO_PORT);
+            mongoDB.ConfigureDatabase (Consts.MONGO_USER, Consts.MONGO_PSW, Consts.MONGO_AUTH_DB, fullServerAddress, Consts.MONGO_TIMEOUT, Consts.MONGO_DATABASE, Consts.MONGO_PROCESSED_URLS_COLLECTION);
 
             // Retry Counter (Used for exponential wait increasing logic)
             int retryCounter = 0;
 
             // Crawl while there are urls in Queue
-            QueuedPage pageToParse;
+            QueuedPage     pageToParse;
             CoreQueuedPage corePageToParse;
 
             while(true)
             {
-                Console.WriteLine();
-                Console.WriteLine("##################################");
-                Console.WriteLine();
-                Console.WriteLine("Get new url to parse.");
-
-                if ( GetNonBusyQueuedPage(out pageToParse) )
+                // Verify page processing limit
+                if (mongoDB.CountProcessedDB() >= Consts.PROCESSED_PAGE_LIMIT)
                 {
-                    Console.WriteLine("Crawl : " + pageToParse.Url);
-                    CrawlUrls(pageToParse);
-                    // Hiccup to avoid domain blocking connections in case of heavy traffic from the same IP
-                    Console.WriteLine("Hiccup to avoid IP blocking");
-                    Thread.Sleep(Convert.ToInt32(TimeSpan.FromSeconds(15).TotalMilliseconds));
+                    Console.WriteLine("Processed pages limit reached.");
+                    Console.WriteLine("BYE BYE");
+                    break;
                 }
-                else if (mongoDB.GetBootstrapperPage(out corePageToParse))
+
+                // Get new Url to process
+                Console.WriteLine ();
+                Console.WriteLine ("##################################");
+                Console.WriteLine ();
+                Console.WriteLine ("Get new url to parse.");
+
+                if ( GetNonBusyQueuedPage (out pageToParse) )
                 {
-                    Console.WriteLine("##################################");
-                    Console.WriteLine();
-                    Console.WriteLine("Bootstrapper page found and added to queue.");
-                    Console.WriteLine();
-                    Console.WriteLine("##################################");
-                    Console.WriteLine();
+                    Console.WriteLine ("Crawl : " + pageToParse.Url);
+                    CrawlUrls (pageToParse);
+
+                    // Hiccup to avoid domain blocking connections in case of heavy traffic from the same IP
+                    Console.WriteLine ("Hiccup to avoid IP blocking");
+                    Thread.Sleep (Convert.ToInt32 (TimeSpan.FromSeconds (15).TotalMilliseconds));
+                }
+                else if (mongoDB.GetBootstrapperPage (out corePageToParse))
+                {
+                    Console.WriteLine ("##################################");
+                    Console.WriteLine ();
+                    Console.WriteLine ("Bootstrapper page found and added to queue.");
+                    Console.WriteLine ();
+                    Console.WriteLine ("##################################");
+                    Console.WriteLine ();
+
                    // Insert to url queue
-                    InsertPageOnURLQueue(corePageToParse.Url, corePageToParse.Domain);
+                    InsertPageOnURLQueue (corePageToParse.Url, corePageToParse.Domain);
                 }
                 else
                 {
                     // Inc. retry counter
                     retryCounter++;
 
-                    Console.WriteLine("Get from Queue did not succeeded. Retry Number " + retryCounter);
+                    Console.WriteLine ("Get from Queue did not succeeded. Retry Number " + retryCounter);
 
                     double waitTime;
+
                     // Checking for maximum retry count
                     if (retryCounter > 20)
                     {
-                        Console.WriteLine("Process reched maximum retries.... Probably there is no more pages to process.");
-                        Console.WriteLine("BYE BYE");
+                        Console.WriteLine ("Process reched maximum retries.... Probably there is no more pages to process.");
+                        Console.WriteLine ("BYE BYE");
                         break;
                     }
+
                     // Checking for biggest acepted retry count
                     else if (retryCounter >= 11)
                     {
-                        waitTime = TimeSpan.FromMinutes(35).TotalMilliseconds;
+                        waitTime = TimeSpan.FromMinutes (35).TotalMilliseconds;
                     }
+
                     else
                     {
                         // Calculating next wait time ( 2 ^ retryCounter seconds)
-                        waitTime = TimeSpan.FromSeconds(Math.Pow(2, retryCounter)).TotalMilliseconds;
+                        waitTime = TimeSpan.FromSeconds (Math.Pow (2, retryCounter)).TotalMilliseconds;
                     }
 
-                    Console.WriteLine("Sleep a little bit...");
+                    Console.WriteLine ("Sleep a little bit...");
+
                     // Hiccup to wait for new
-                    Thread.Sleep(Convert.ToInt32(waitTime));
+                    Thread.Sleep (Convert.ToInt32 (waitTime));
                 }
             }
-            Console.WriteLine("End of process...");
+
+            Console.WriteLine ("End of process...");
         }
 
         /// <summary>
@@ -110,49 +126,15 @@ namespace WebCrawler
         private static bool GetNonBusyQueuedPage(out QueuedPage pageToParse)
         {
             // Get Queued page that is not on "busy" stats AND mark as busy
-            pageToParse = mongoDB.FindAndModify();
+            pageToParse = mongoDB.FindAndModifyRandom ();
+
             if(pageToParse != null)
             {
                 return true;
             }
+
             return false;
         }
-
-        /// <summary>
-        ///  Get bootstrapper page from App.config
-        /// </summary>
-        /// <param name="pageToParse"></param>
-        /// <returns></returns>
-        //private static bool GetBootstrapPage(out CoreQueuedPage pageToParse)
-        //{
-        //    // If bootstrap flag is active
-        //    if(Boolean.Parse(ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_FLAG")))
-        //    {
-        //        // Get bootstrap page
-        //        pageToParse        = new CoreQueuedPage();
-        //        pageToParse        = new CoreQueuedPage();
-        //        pageToParse.Url    = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_URL");
-        //        pageToParse.Domain = ConfigurationManager.AppSettings.Get("BOOTSTRAPPER_DOMAIN");
-
-        //        // Set bootstrap flag to false to mark bootstrap as already used
-        //        string appPath                  = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-        //        string configFile               = System.IO.Path.Combine(appPath, "WebCrawler.exe.config");
-        //        var configFileMap               = new ExeConfigurationFileMap();
-        //        configFileMap.ExeConfigFilename = configFile;
-        //        Configuration config            = ConfigurationManager.OpenMappedExeConfiguration(configFileMap, ConfigurationUserLevel.None);
-        //        // Change flag value
-        //        config.AppSettings.Settings["BOOTSTRAPPER_FLAG"].Value = "false";
-        //        config.Save(); 
-
-        //        return true;
-        //    }
-        //    // Flag is false, bootstrapper page has already been used
-        //    else
-        //    {
-        //        pageToParse = null;
-        //        return false;
-        //    }
-        //}
 
         /// <summary>
         /// 
@@ -164,7 +146,7 @@ namespace WebCrawler
             int retryCounter = 0;
 
             // Check if page has alredy been processed
-            if (!IsProcessedPage(pageToParse))
+            if (!IsProcessedPage (pageToParse))
             {
                 // Creating Instance of Web Requests Server
                 WebRequests server = new WebRequests();
@@ -174,31 +156,31 @@ namespace WebCrawler
 
                 do // while (String.IsNullOrEmpty(html) || server.StatusCode != System.Net.HttpStatusCode.OK);
                 {
-                    Console.WriteLine("Geting HTML...");
+                    Console.WriteLine ("Geting HTML...");
                     // Get Page
-                    html = server.Get(pageToParse.Url);
+                    html = server.Get (pageToParse.Url);
 
                     // Sanity Check
-                    if (String.IsNullOrEmpty(html) || server.StatusCode != System.Net.HttpStatusCode.OK)
+                    if (String.IsNullOrEmpty (html) || server.StatusCode != System.Net.HttpStatusCode.OK)
                     {
                         if (server.StatusCode == System.Net.HttpStatusCode.NotFound)
                         {
-                            Console.WriteLine("Page not Found! Remove it from Queue.");
+                            Console.WriteLine ("Page not Found! Remove it from Queue.");
                             mongoDB.RemoveFromQueue(pageToParse);
                             break;
                         }
-                        LogWriter.Info("Error opening page : " + pageToParse.Url);
+                        LogWriter.Info ("Error opening page : " + pageToParse.Url);
 
                         // Inc. retry counter
                         retryCounter++;
 
-                        Console.WriteLine("Retrying:" + retryCounter);
+                        Console.WriteLine ("Retrying:" + retryCounter);
 
                         // Checking for maximum retry count waitTime
                         double waitTime = 0;
                         if (retryCounter >= 11)
                         {
-                            waitTime = TimeSpan.FromMinutes(35).TotalMilliseconds;
+                            waitTime = TimeSpan.FromMinutes (35).TotalMilliseconds;
                         }
                         // Cheking for problematic page
                         else if (retryCounter >= 13)
@@ -206,76 +188,79 @@ namespace WebCrawler
                             // Probably my IP is blocked for this domain or the page is expired...
 
                             // Ckeck if maximmum of crawlers that tryed this page and did not succeeded to was reached.
-                            if(mongoDB.PageRetries(pageToParse) >= 3)
+                            if(mongoDB.PageRetries (pageToParse) >= 3)
                             {
-                                Console.WriteLine("This page is probably unreachable. Remove it from DB.");
+                                Console.WriteLine ("This page is probably unreachable. Remove it from DB.");
+
                                 // Removing Page from the database (this the page may have expired)
-                                mongoDB.RemoveFromQueue(pageToParse);
+                                mongoDB.RemoveFromQueue (pageToParse);
+
                                 return;
                             }
+
                             // Give up and let other crawler try.
                             else 
                             {
-                                Console.WriteLine("Probably IP is blocked. Give up and let other crawler try.");
+                                Console.WriteLine ("Probably IP is blocked. Give up and let other crawler try.");
                                 return;
                             }
                         }
                         else
                         {
                             // Calculating next wait time ( 2 ^ retryCounter seconds)
-                            waitTime = TimeSpan.FromSeconds(Math.Pow(2, retryCounter)).TotalMilliseconds;
+                            waitTime = TimeSpan.FromSeconds (Math.Pow (2, retryCounter)).TotalMilliseconds;
                             
                             // Maybe this IP is blocked by the url Domain. Flag url as not busy 
                             // so that other crawlers can try to process it
                             if (retryCounter >= 7)
                             {
-                                mongoDB.ToggleBusyPage(pageToParse, false);
-                                mongoDB.IncrisePageTriesCounter(pageToParse);
+                                mongoDB.ToggleBusyPage (pageToParse, false);
+                                mongoDB.IncrisePageTriesCounter (pageToParse);
                             }
                         }
 
                         // Hiccup to avoid blocking connections in case of heavy traffic from the same IP
-                        Console.WriteLine("Hiccup to avoid blocking connections. WaitTime = " + waitTime);
-                        Thread.Sleep(Convert.ToInt32(waitTime));
+                        Console.WriteLine ("Hiccup to avoid blocking connections. WaitTime = " + waitTime);
+                        Thread.Sleep (Convert.ToInt32 (waitTime));
                     }
                     else
                     {
                         retryCounter = 0;
 
                         // Put page html on SQS Queue
-                        Console.WriteLine("Sending HTML to SQS...");
+                        Console.WriteLine ("Sending HTML to SQS...");
                         insetHtmlOnSQSQueue(pageToParse, html);
 
                         // Save page on DB for future access if needed (html will be zipped for less use of storage)
-                        Console.WriteLine("Adding to HtmlStorage...");
-                        mongoDB.AddToHtmlStorage(new FullPage { Domain = pageToParse.Domain, Html = ZipHelper.Zip(html), Url = pageToParse.Url });
+                        Console.WriteLine ("Adding to HtmlStorage...");
+                        mongoDB.AddToHtmlStorage (new FullPage { Domain = pageToParse.Domain, Html = ZipHelper.Zip (html), Url = pageToParse.Url });
 
-                        //Parser Internal urls
-                        Console.WriteLine("Getting internal links...");
-                        PageParser parser = new PageParser();
-                        List<string> internalLinksList = parser.GetInternalLinks(html, pageToParse.Domain, pageToParse.Url);
-                        Console.WriteLine("(" + internalLinksList.Count + ") internal links found.");
+                        //Parser Internal urls for Queue feeding 
+                        Console.WriteLine ("Getting internal links...");
+                        PageParser parser = new PageParser ();
+                        List<string> internalLinksList = parser.GetInternalLinks (html, pageToParse.Domain, pageToParse.Url);
+                        Console.WriteLine ("(" + internalLinksList.Count + ") internal links found.");
 
                         //Insert Internal urls in Queue to be processed
                         foreach (string internalLink in internalLinksList)
                         {
                             // Verify if url is NOT alredy on Queue or processed
-                            if (!mongoDB.IspageOnQueue(internalLink) && !mongoDB.IsPageProcessed(internalLink))
+                            if (!mongoDB.IspageOnQueue (internalLink) && !mongoDB.IsPageProcessed (internalLink))
                             {
-                                InsertPageOnURLQueue(internalLink, pageToParse.Domain);
+                                InsertPageOnURLQueue (internalLink, pageToParse.Domain);
                             }
                         }
 
                         //Remove page from Queue and insert on Processed collection
-                        Console.WriteLine("Changing page status to processed...");
-                        ChangePageStatusToProcessed(pageToParse);
+                        Console.WriteLine ("Changing page status to processed...");
+                        ChangePageStatusToProcessed (pageToParse);
                     }
                 }
-                while (String.IsNullOrEmpty(html) || server.StatusCode != System.Net.HttpStatusCode.OK); 
+                while (String.IsNullOrEmpty (html) || server.StatusCode != System.Net.HttpStatusCode.OK); 
             }
             else
             {
-                Console.WriteLine("Page Already Processed.");
+                Console.WriteLine ("Page Already Processed.");
             }
         }
 
@@ -288,22 +273,22 @@ namespace WebCrawler
             // Insert Page on SQS
             // Preparing SQS 
             // SQS uses N.Virginia as default
-            AmazonSQSClient amazonSQSClient = new AmazonSQSClient(Consts.USER_ACCESS_KEY_ID,Consts.USER_SECRET_ACCESS_KEY,Amazon.RegionEndpoint.USEast1);
+            AmazonSQSClient amazonSQSClient = new AmazonSQSClient (Consts.USER_ACCESS_KEY_ID,Consts.USER_SECRET_ACCESS_KEY,Amazon.RegionEndpoint.USEast1);
 
             // Prepare message model
-            FullPage pageToSQS = new FullPage();
+            FullPage pageToSQS = new FullPage ();
             pageToSQS.Domain   = page.Domain;
             pageToSQS.Url      = page.Url;
             pageToSQS.Html     = html;
 
             //Preparing message
-            SendMessageRequest sendMessageRequest = new SendMessageRequest();
+            SendMessageRequest sendMessageRequest = new SendMessageRequest ();
             sendMessageRequest.QueueUrl           = Consts.SQS_QUEUE_URL; //URL from initial queue creation
-            sendMessageRequest.MessageBody        = JsonConvert.SerializeObject(pageToSQS);
+            sendMessageRequest.MessageBody        = JsonConvert.SerializeObject (pageToSQS);
             
             //send message if html is lower than 255 KB
-            if(System.Text.ASCIIEncoding.Unicode.GetByteCount(html) < 255000)
-                amazonSQSClient.SendMessage(sendMessageRequest);
+            if (System.Text.ASCIIEncoding.Unicode.GetByteCount (html) < 255000)
+                amazonSQSClient.SendMessage (sendMessageRequest);
             
         }
 
@@ -315,9 +300,9 @@ namespace WebCrawler
         private static bool IsProcessedPage(QueuedPage page)
         {
             // Verify if page was processed, if TRUE, REMOVE from QUEUE
-            if(mongoDB.IsPageProcessed(page))
+            if(mongoDB.IsPageProcessed (page))
             {
-                mongoDB.RemoveFromQueue(page);
+                mongoDB.RemoveFromQueue (page);
                 return true;
             }
             return false;
@@ -328,13 +313,13 @@ namespace WebCrawler
         /// </summary>
         private static bool InsertPageOnURLQueue(string url, string domain)
         {
-            QueuedPage newPage = new QueuedPage();
-            newPage.Url = url;
-            newPage.Domain = domain;
-            newPage.IsBusy = false;
+            QueuedPage newPage = new QueuedPage ();
+            newPage.Url        = url;
+            newPage.Domain     = domain;
+            newPage.IsBusy     = false;
 
             // Insert url on Queue
-            return mongoDB.AddToQueue(newPage);
+            return mongoDB.AddToQueue (newPage);
         }
 
         /// <summary>
@@ -345,10 +330,10 @@ namespace WebCrawler
         private static bool ChangePageStatusToProcessed(QueuedPage page)
         {
             // Remove page from Queue
-            mongoDB.RemoveFromQueue(page);
+            mongoDB.RemoveFromQueue (page);
 
             //Insert on Processed
-            mongoDB.AddToProcessed(page);
+            mongoDB.AddToProcessed (page);
             return false;
         }
     }

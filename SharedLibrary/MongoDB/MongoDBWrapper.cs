@@ -183,6 +183,12 @@ namespace SharedLibrary.MongoDB
             Random rnd  = new Random();
             int skipNum = rnd.Next(0, count);
 
+            // Sanity check
+            if(count == 0)
+            {
+                return null;
+            }
+
             // Mongo Query
             var mongoQuery = Query.EQ("IsBusy", false);
 
@@ -195,7 +201,7 @@ namespace SharedLibrary.MongoDB
             queries.Add(Query.EQ("Url", findCursor.First().Url));
             var updateStatement = Update.Set("IsBusy", true);
 
-            // 
+            // Set Find and Modify Query
             var FMQuery = Query.And(queries);
 
             // Finding a Not Busy page, and updating its state to busy
@@ -295,6 +301,11 @@ namespace SharedLibrary.MongoDB
             return _database.GetCollection<FullPage>(Consts.MONGO_HTML_STORAGE_COLLECTION).SafeInsert(page);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
         public bool GetBootstrapperPage(out CoreQueuedPage page)
         {
             page = new CoreQueuedPage();
@@ -318,6 +329,15 @@ namespace SharedLibrary.MongoDB
             page.IsBusy = botPage.IsBusy;
             page.Domain = botPage.Domain;
             return true;
+        }
+
+        /// <summary>
+        /// Count registers on processed DB
+        /// </summary>
+        /// <returns></returns>
+        public int CountProcessedDB()
+        {
+            return (int)_database.GetCollection<QueuedPage>(Consts.MONGO_PROCESSED_URLS_COLLECTION).Count();
         }
     }
 }
