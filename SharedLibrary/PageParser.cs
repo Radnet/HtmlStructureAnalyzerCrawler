@@ -189,26 +189,26 @@ namespace SharedLibrary
             try
             {
                 linkUri = new Uri(link, UriKind.RelativeOrAbsolute);
-            }
+           
+                Uri originalUri = new Uri(originalUrl, UriKind.RelativeOrAbsolute);
+
+                // Make it absolute if it's relative
+                if (!linkUri.IsAbsoluteUri)
+                {
+                    linkUri = new Uri(originalUri, linkUri);
+                }
+
+                // If it's an internal link (Has the same Host)
+                if (originalUri.Host.Equals(linkUri.Host))
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }             
             catch(UriFormatException e)
-            {
-                return false;
-            }
-
-            Uri originalUri = new Uri(originalUrl, UriKind.RelativeOrAbsolute);
-
-            // Make it absolute if it's relative
-            if (!linkUri.IsAbsoluteUri)
-            {
-                linkUri = new Uri(originalUri, linkUri);
-            }
-
-            // If it's an internal link (Has the same Host)
-            if (originalUri.Host.Equals(linkUri.Host))
-            {
-                return true;
-            }
-            else
             {
                 return false;
             }

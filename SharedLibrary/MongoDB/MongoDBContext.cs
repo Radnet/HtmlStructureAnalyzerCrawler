@@ -1,28 +1,69 @@
-﻿using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using MongoDB.Driver;
 
-namespace SharedLibrary.MongoDB
+namespace SharedLibrary
 {
+    /// <summary>
+    /// Helper class to connect to a MongoDB instance/cluster
+    /// 
+    /// ** Usage Example **
+    /// 1. In the application startup/initialization, call MongoDbContext.Configure (...) to set the global connection settings 
+    /// 
+    /// 2. Call MongoDbContext.GetDatabase ("My Database Name") to get a thread safe instance of MongoDatabase
+    /// 
+    /// </summary>
     public class MongoDbContext
     {
-        #region ** Attributes **
+        /// <remarks>
+        /// 
+        /// ** Connection String **
+        /// format example:
+        /// 
+        /// mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]
+        /// 
+        /// ** OPTIONS **
+        /// * w
+        /// -1 : The driver will not acknowledge write operations and will suppress all network or socket errors.
+        /// 0 : The driver will not acknowledge write operations, but will pass or handle any network and socket errors that it receives to the client.
+        /// 1 : Provides basic acknowledgment of write operations, a standalone mongod instance, or the primary for replica sets, acknowledge all write operations
+        /// majority
+        /// n
+        /// tags
+        /// 
+        /// * ssl
+        /// true: Initiate the connection with SSL.
+        /// false: Initiate the connection without SSL.
+        /// The default value is false.
+        /// 
+        /// * connectTimeoutMS
+        /// The time in milliseconds to attempt a connection before timing out. 
+        /// The default is never to timeout, though different drivers might vary. See the driver documentation.
+        /// 
+        /// * socketTimeoutMS
+        /// The time in milliseconds to attempt a send or receive on a socket before the attempt times out. 
+        /// The default is never to timeout, though different drivers might vary. See the driver documentation.
+        /// 
+        /// * journal 
+        /// true / false
+        /// 
+        /// * readPreference
+        /// primaryPreferred - will try to read from primary (but if primary is offline, will read from the secondary nodes)
+        /// secondaryPreferred - will try to read from a secondary node (but if offline, will read from the primary node)
+        /// (OBS.: All writes go to the Primary)
+        /// 
+        /// </remarks>
+        
+        private static string _globalConnectionString = String.Empty;
+        
+        private static Lazy<MongoClient> _mongoDbInstance = new Lazy<MongoClient> (OpenConnection);
 
-        static string m_baseConnectionString = String.Empty;
-        static string m_login = null;
-        static string m_password = null;
-        static MongoServer m_server = null;
-
-        #endregion
-
-        #region ** Core MongoDB Methods **
+        private static MongoServer _server = null;
 
         /// <summary>
-        /// Configures the specified login.
+        /// Configures the global connection string for a MongoDB instance/cluster.
         /// </summary>
         /// <param name="login">The login.</param>
         /// <param name="password">The password.</param>
@@ -31,19 +72,40 @@ namespace SharedLibrary.MongoDB
         /// <param name="readOnSecondary">The read on secondary. True to direct read operations to cluster secondary nodes (secondaryPreferred), else try to read from primary (primaryPreferred).</param>
         /// <param name="connectionTimeoutMilliseconds">The time to attempt a connection before timing out.</param>
         /// <param name="socketTimeoutMilliseconds">The time to attempt a send or receive on a socket before the attempt times out.</param>
-        /// <param name="isReplicaSet">The is replica set hint.</param>
+        /// <param name="databaseName">Database name required to authenticate against a specific database [optional].</param>
         /// <param name="readPreferenceTags">The read preference tags. List of a comma-separated list of colon-separated key-value pairs. Ex.: { {dc:ny,rack:1}, { dc:ny } } </param>
-        public static void Configure (string login, string password, string authSrc, string addresses, bool safeMode = true, bool readOnSecondary = false, int connectionTimeoutMilliseconds = 60000, int socketTimeoutMilliseconds = 60000, IEnumerable<string> readPreferenceTags = null)
+        public static void Configure (string login, string password, string addresses, bool safeMode = true, bool readOnSecondary = false, int connectionTimeoutMilliseconds = 30000, int socketTimeoutMilliseconds = 90000, string databaseName = null, IEnumerable<string> readPreferenceTags = null)
         {
-            m_login = login;
-            m_password = password;
             // prepares the connection string
-            string connectionString = BuildConnectionString (login, password, authSrc, safeMode, readOnSecondary, addresses, connectionTimeoutMilliseconds, socketTimeoutMilliseconds, /*isReplicaSet, */ readPreferenceTags);
+            string connectionString = BuildConnectionString (login, password, safeMode, readOnSecondary, addresses, connectionTimeoutMilliseconds, socketTimeoutMilliseconds, databaseName, readPreferenceTags);
+            // set the new connection string
+            Configure (connectionString);
+        }
+
+        /// <summary>
+        /// Configures the global connection string for a MongoDB instance/cluster.
+        /// </summary>
+        /// <param name="connectionString">The connection string builder.</param>
+        public static void Configure (MongoUrlBuilder connectionString)
+        {
+            if (connectionString.ConnectTimeout.TotalSeconds < 30) connectionString.ConnectTimeout = TimeSpan.FromSeconds (30);
+            if (connectionString.SocketTimeout.TotalSeconds < 90) connectionString.SocketTimeout = TimeSpan.FromSeconds (90);
+            connectionString.MaxConnectionIdleTime = TimeSpan.FromSeconds (30);
+            // set the new connection string
+            Configure (connectionString.ToString ());
+        }
+
+        /// <summary>
+        /// Configures the global connection string for a MongoDB instance/cluster.
+        /// </summary>
+        /// <param name="connectionString">The connection string.</param>
+        public static void Configure (string connectionString)
+        {
             // if there is any change, reconnect
-            if (m_baseConnectionString != connectionString)
+            if (_globalConnectionString != connectionString)
             {
-                m_baseConnectionString = connectionString;
-                Dispose ();                
+                _globalConnectionString = connectionString;
+                Dispose ();
             }
         }
           
@@ -53,8 +115,8 @@ namespace SharedLibrary.MongoDB
         /// </summary>
         public static void Dispose ()
         {            
-            m_server = null;
-            m_docStore = new Lazy<MongoClient> (OpenConnection);
+            _server = null;
+            _mongoDbInstance = new Lazy<MongoClient> (OpenConnection);
         }
   
         /// <summary>
@@ -63,14 +125,29 @@ namespace SharedLibrary.MongoDB
         /// </summary>
         public static void ForceDisconnect ()
         {
-            if (m_server != null)
+            if (_server != null)
             {
-                m_server.Disconnect ();                
+                _server.Disconnect ();                
             }
         }
 
         /// <summary>
-        /// Builds the connection string.
+        /// Builds the connection string for MongoDB.
+        /// </summary>
+        /// <param name="login">The login.</param>
+        /// <param name="password">The password.</param>
+        /// <param name="addresses">List of addresses. Format: host1[:port1][,host2[:port2],...[,hostN[:portN]]]</param>
+        /// <param name="databaseName">Database name required to authenticate against a specific database [optional].</param>
+        /// <returns></returns>
+        public static string BuildConnectionString (string login, string password, string addresses, string databaseName = null)
+        {
+            return BuildConnectionString (login, password, true, false, addresses, 30000, 90000, databaseName);
+        }
+
+        static string[] urlPrefix = new string[] { "mongodb://" };
+
+        /// <summary>
+        /// Builds the connection string for MongoDB.
         /// </summary>
         /// <param name="login">The login.</param>
         /// <param name="password">The password.</param>
@@ -79,90 +156,132 @@ namespace SharedLibrary.MongoDB
         /// <param name="addresses">List of addresses. Format: host1[:port1][,host2[:port2],...[,hostN[:portN]]]</param>
         /// <param name="connectionTimeoutMilliseconds">The time to attempt a connection before timing out.</param>
         /// <param name="socketTimeoutMilliseconds">The time to attempt a send or receive on a socket before the attempt times out.</param>
-        /// <param name="isReplicaSet">The is replica set hint.</param>
+        /// <param name="databaseName">Database name required to authenticate against a specific database [optional].</param>
         /// <param name="readPreferenceTags">The read preference tags. List of a comma-separated list of colon-separated key-value pairs. Ex.: { {dc:ny,rack:1}, { dc:ny } } </param>
-        public static string BuildConnectionString (string login, string password, string authSrc, bool safeMode, bool readOnSecondary, string addresses, int connectionTimeoutMilliseconds, int socketTimeoutMilliseconds,  IEnumerable<string> readPreferenceTags = null)
+        public static string BuildConnectionString (string login, string password, bool safeMode, bool readOnSecondary, string addresses, int connectionTimeoutMilliseconds, int socketTimeoutMilliseconds, string databaseName = null, IEnumerable<string> readPreferenceTags = null)
         {
-            StringBuilder sb = new StringBuilder ("mongodb://", 230);
-            // check credentials
-            if (!String.IsNullOrWhiteSpace (login) && !String.IsNullOrWhiteSpace (password))
-            {
-                sb.Append (login).Append (':').Append (password).Append ('@');
-            }
+            var cb = new MongoDB.Driver.MongoUrlBuilder ("mongodb://" + addresses.Replace ("mongodb://", ""));
+            cb.Username = login;
+            cb.Password = password;
+            cb.ConnectionMode = MongoDB.Driver.ConnectionMode.Automatic;            
+            cb.W = safeMode ? WriteConcern.W1.W : WriteConcern.Unacknowledged.W;
 
-            // address
-            sb.Append (addresses).Append ("/?");
-
-            if (!String.IsNullOrEmpty(authSrc))
-            {
-                sb.Append("authSource=").Append (authSrc).Append("&");
-            }
-
-            // options
-            //if (isReplicaSet)
-            //    sb.Append ("connect=replicaset&");
-            if (safeMode)
-                sb.Append ("w=1&");
-            else
-                sb.Append ("w=0&");
-            if (readOnSecondary)
-            {
-                sb.Append ("readPreference=secondaryPreferred&");
-            }
-            else
-            {
-                sb.Append ("readPreference=primaryPreferred&");
-            }
+            if (connectionTimeoutMilliseconds < 15000) connectionTimeoutMilliseconds = 15000;
+            if (socketTimeoutMilliseconds < 15000) socketTimeoutMilliseconds = 15000;
+            cb.ConnectTimeout = TimeSpan.FromMilliseconds (connectionTimeoutMilliseconds);
+            cb.SocketTimeout = TimeSpan.FromMilliseconds (socketTimeoutMilliseconds);
+            
+            cb.MaxConnectionIdleTime = TimeSpan.FromSeconds (30);
+            
+            cb.ReadPreference = new ReadPreference ();
+            cb.ReadPreference.ReadPreferenceMode = readOnSecondary ? ReadPreferenceMode.SecondaryPreferred : ReadPreferenceMode.PrimaryPreferred;
+            
             if (readPreferenceTags != null)
             {
-                foreach (var tag in readPreferenceTags)
-                {
-                    if (String.IsNullOrWhiteSpace (tag))
-                        continue;
-                    sb.Append ("readPreferenceTags=").Append (tag.Trim ().Replace (' ', '_')).Append ('&');
-                }
+                foreach (var tag in readPreferenceTags.Where (i => i != null && i.IndexOf (':') > 0).Select (i => i.Split (':')).Select (i => new ReplicaSetTag (i[0], i[1])))
+                    cb.ReadPreference.AddTagSet (new ReplicaSetTagSet ().Add (tag));                
             }
 
-            sb.Append ("connectTimeoutMS=").Append (connectionTimeoutMilliseconds).Append ("&socketTimeoutMS=").Append (socketTimeoutMilliseconds);
-
             // generate final connection string
-            return sb.ToString ();
+            return cb.ToString ();
         }
-
-        private static Lazy<MongoClient> m_docStore = new Lazy<MongoClient> (OpenConnection);
-
-        static DateTimeSerializer _dateTimeSerializer = null;
 
         private static MongoClient OpenConnection ()
         {
+            // TODO: set serialization options (a design decision to use UtcNow or Local time zone).
+            // Its is recommended to use UtcNow as the DateTime default in the database, and only convert to local whenever the data is displayed to the user.
+            // To use Local time zone, uncomment the line bellow:
+            
+            // MongoDB.Bson.Serialization.BsonSerializer.RegisterSerializer (typeof (DateTime), new MongoDB.Bson.Serialization.Serializers.DateTimeSerializer (MongoDB.Bson.Serialization.Options.DateTimeSerializationOptions.LocalInstance));
+            
             // create mongo client
-            MongoClient client = new MongoClient (m_baseConnectionString);
+            MongoClient client = new MongoClient (_globalConnectionString);
             return client;
         }
 
         public static MongoClient Client
         {
-            get { return m_docStore.Value; }
+            get { return _mongoDbInstance.Value; }
         }
 
         public static MongoServer Server
         {
             get
             {
-                if (m_server == null)
-                    m_server = Client.GetServer ();
-                return m_server;
+                if (_server == null)
+                    _server = Client.GetServer ();
+                return _server;
             }
+		}
+
+        /// <summary>
+        /// Gets the MongoDb server instance.
+        /// </summary>
+        /// <returns></returns>
+        public static MongoServer GetServer ()
+        {
+            return Client.GetServer ();
         }
 
+        /// <summary>
+        /// Gets the MongoDb server instance using the provided connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string.</param>
+        /// <returns></returns>
+        public static MongoServer GetServer (MongoUrlBuilder connectionString)
+        {
+            if (connectionString.ConnectTimeout.TotalSeconds < 30) connectionString.ConnectTimeout = TimeSpan.FromSeconds (30);
+            if (connectionString.SocketTimeout.TotalSeconds < 90) connectionString.SocketTimeout = TimeSpan.FromSeconds (90);
+            connectionString.MaxConnectionIdleTime = TimeSpan.FromSeconds (30);
+            return GetServer (connectionString.ToString ());
+        }
+
+        /// <summary>
+        /// Gets the MongoDb server instance using the provided connection string.
+        /// </summary>
+        /// <param name="connectionString">The connection string.</param>
+        /// <returns></returns>
+        public static MongoServer GetServer (string connectionString)
+        {
+            MongoClient client = new MongoClient (connectionString);
+            return client.GetServer ();
+        }
+
+        /// <summary>
+        /// Gets a database instance that is thread safe. <para/>
+        /// Uses the static connection string set by <seealso cref="Configure"/> static method.
+        /// </summary>
+        /// <param name="dbName">Name of the db.</param>
+        /// <returns></returns>
         public static MongoDatabase GetDatabase (string dbName)
         {
             return Server.GetDatabase (dbName);
         }
 
-        #endregion
-    }
+        /// <summary>
+        /// Gets the database instance that is thread safe using the provided connection string.
+        /// </summary>
+        /// <param name="dbName">Name of the db.</param>
+        /// <param name="connectionString">The connection string to the MongoDB instance/cluster.</param>
+        /// <returns></returns>
+        public static MongoDatabase GetDatabase (string dbName, MongoUrlBuilder connectionString)
+        {
+            return GetDatabase (dbName, connectionString.ToString ());
+        }
 
+        /// <summary>
+        /// Gets the database instance that is thread safe using the provided connection string.
+        /// </summary>
+        /// <param name="dbName">Name of the db.</param>
+        /// <param name="connectionString">The connection string to the MongoDB instance/cluster.</param>
+        /// <returns></returns>
+        public static MongoDatabase GetDatabase (string dbName, string connectionString)
+        {
+            MongoClient client = new MongoClient (connectionString);
+            return client.GetServer ().GetDatabase (dbName);
+        }
+    }
+	
 	/// <summary>
     /// Some MongoDb helpers methods
     /// </summary>
@@ -176,8 +295,9 @@ namespace SharedLibrary.MongoDB
         /// <param name="item">The item.</param>
         /// <param name="retryCount">The retry count in case of connection errors.</param>
         /// <param name="throwOnError">Throws an exception on error.</param>
+        /// <param name="ignoreDuplicates">If the insert fails because of duplicated id, then returns as success.</param>
         /// <returns></returns>
-        public static bool SafeInsert<T> (this MongoCollection col, T item, int retryCount = 2, bool throwOnError = false)
+        public static bool SafeInsert<T> (this MongoCollection col, T item, int retryCount = 2, bool throwOnError = false, bool ignoreDuplicates = false)
         {
             int done = 0;
             // try to update/insert and 
@@ -189,23 +309,31 @@ namespace SharedLibrary.MongoDB
                     if (col.Insert (item).Ok)
                         return true;
                 }
-                catch (System.IO.IOException ex)
+                catch (MongoDuplicateKeyException dup)
                 {
-                    // retry limit
-                    if (throwOnError && done > (retryCount - 1))
-                        throw;
+                    // duplicate id exception (no use to retry)
+                    if (ignoreDuplicates) return true;
+                    if (throwOnError) throw;
+                    break;
                 }
                 catch (WriteConcernException wcEx)
                 {
                     // duplicate id exception (no use to retry)
-                    if (wcEx.CommandResult != null && (wcEx.CommandResult.Code ?? 0) == 11000)
+                    if (wcEx.CommandResult != null && wcEx.CommandResult.Code.HasValue &&
+                        (wcEx.CommandResult.Code.Value == 11000 || wcEx.CommandResult.Code.Value == 11001))
                     {
                         if (throwOnError)
                             throw;
                         else
-                            return false;
+                            return ignoreDuplicates;
                     }
                     // retry limit
+                    if (throwOnError && done > (retryCount - 1))
+                        throw;
+                }
+                // System.IO.IOException ex
+                catch
+                {
                     if (throwOnError && done > (retryCount - 1))
                         throw;
                 }
@@ -236,15 +364,10 @@ namespace SharedLibrary.MongoDB
                     if (col.Save (item).Ok) 
                         return true;
                 }
-                catch (System.IO.IOException ex)
+                // System.IO.IOException ex
+                // WriteConcernException wcEx
+                catch (System.Exception exAll)
                 {
-                    // retry limit
-                    if (throwOnError && done > (retryCount - 1))
-                        throw;
-                }
-                catch (WriteConcernException wcEx)
-                {                    
-                    // retry limit
                     if (throwOnError && done > (retryCount - 1))
                         throw;
                 }
@@ -262,8 +385,9 @@ namespace SharedLibrary.MongoDB
         /// <param name="items">list of items.</param>
         /// <param name="retryCount">The retry count in case of connection errors.</param>
         /// <param name="throwOnError">Throws an exception on error.</param>
+        /// <param name="ignoreDuplicates">If the insert fails because of duplicated id, then returns as success.</param>
         /// <returns></returns>
-        public static bool SafeInsertBatch<T> (this MongoCollection col, IList<T> items, int retryCount = 2, bool throwOnError = false)
+        public static bool SafeInsertBatch<T> (this MongoCollection col, IList<T> items, int retryCount = 2, bool throwOnError = false, bool ignoreDuplicates = false)
         {
             // try to insertbatch
             try
@@ -274,12 +398,26 @@ namespace SharedLibrary.MongoDB
             {
                 // in case of a insertbatch faillure, 
                 // update or insert each item individually
-                for (int i = 0; i < items.Count; i++)
-                {
-                    if (!col.SafeSave (items[i], retryCount, throwOnError))
+                if (ignoreDuplicates)
+                { 
+                    for (int i = 0; i < items.Count; i++)
                     {
-                        // in case of another faillure, give up saving items
-                        return false;                        
+                        if (!col.SafeInsert (items[i], retryCount, throwOnError, ignoreDuplicates))
+                        {
+                            // in case of another faillure, give up saving items
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < items.Count; i++)
+                    {
+                        if (!col.SafeSave (items[i], retryCount, throwOnError))
+                        {
+                            // in case of another faillure, give up saving items
+                            return false;
+                        }
                     }
                 }
             }

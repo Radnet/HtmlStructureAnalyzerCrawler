@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharedLibrary.MongoDB
+namespace SharedLibrary
 {
     public class MongoDBWrapper
     {
@@ -37,7 +37,7 @@ namespace SharedLibrary.MongoDB
         public void ConfigureDatabase (string username, string password, string authSrc, string serverAddress, int timeout, string databaseName, string collectionName, string entity = "")
         {
             // Reading page Config for config data            
-            _connString     = MongoDbContext.BuildConnectionString (username, password, authSrc, true, false, serverAddress, timeout, timeout);                        
+            _connString = MongoDbContext.BuildConnectionString(username, password, true, false, serverAddress, timeout, timeout, authSrc);                        
             _server         = new MongoClient (_connString).GetServer ();
             _database       = _server.GetDatabase (databaseName);
             _collectionName = collectionName;

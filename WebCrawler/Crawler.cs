@@ -1,11 +1,11 @@
 ﻿using Amazon.SQS;
 using Amazon.SQS.Model;
-using BDC.BDCCommons;
 using Newtonsoft.Json;
+using NLog;
 using SharedLibrary;
 using SharedLibrary.Helpers;
 using SharedLibrary.Models;
-using SharedLibrary.MongoDB;
+using SharedLibrary.SimpleHelpers;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -22,11 +22,47 @@ namespace WebCrawler
         // MongoDB Helpers
         private static MongoDBWrapper mongoDB = new MongoDBWrapper ();
 
+        public static FlexibleOptions ProgramOptions { get; private set; }
+
+        /// <summary>
+        /// Main program entry point.
+        /// </summary>
         static void Main(string[] args)
         {
-            // Configuring Log Object Threshold
-            LogWriter.Threshold = TLogEventLevel.Information;
-            LogWriter.Info ("Worker Started");
+            // set error exit code
+            System.Environment.ExitCode = -50;
+            try
+            {
+                // load configurations
+                ProgramOptions = ConsoleUtils.Initialize(args, true);
+
+                // start execution
+                Execute(ProgramOptions);
+
+                // check before ending for waitForKeyBeforeExit option
+                if (ProgramOptions.Get("waitForKeyBeforeExit", false))
+                    ConsoleUtils.WaitForAnyKey();
+            }
+            catch (Exception ex)
+            {
+                LogManager.GetCurrentClassLogger().Fatal(ex);
+
+                // check before ending for waitForKeyBeforeExit option
+                if (ProgramOptions.Get("waitForKeyBeforeExit", false))
+                    ConsoleUtils.WaitForAnyKey();
+
+                ConsoleUtils.CloseApplication(-60, true);
+            }
+            // set success exit code
+            ConsoleUtils.CloseApplication(0, false);
+        }
+
+        static Logger logger = LogManager.GetCurrentClassLogger();
+        static DateTime started = DateTime.UtcNow;
+
+        private static void Execute(FlexibleOptions options)
+        {
+            logger.Info("Worker Started");            
 
             Console.WriteLine ("Open MongoDB connection...");
 
@@ -115,7 +151,7 @@ namespace WebCrawler
                 }
             }
 
-            Console.WriteLine ("End of process...");
+            logger.Debug ("End of process...");
         }
 
         /// <summary>
@@ -169,7 +205,7 @@ namespace WebCrawler
                             mongoDB.RemoveFromQueue(pageToParse);
                             break;
                         }
-                        LogWriter.Info ("Error opening page : " + pageToParse.Url);
+                        logger.Info ("Error opening page : " + pageToParse.Url);
 
                         // Inc. retry counter
                         retryCounter++;
