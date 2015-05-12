@@ -199,7 +199,7 @@ namespace WebCrawler
                     // Sanity Check
                     if (String.IsNullOrEmpty (html) || server.StatusCode != System.Net.HttpStatusCode.OK)
                     {
-                        if (server.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        if (server.StatusCode == System.Net.HttpStatusCode.NotFound || server.StatusCode == 0)
                         {
                             Console.WriteLine ("Page not Found! Remove it from Queue.");
                             mongoDB.RemoveFromQueue(pageToParse);
