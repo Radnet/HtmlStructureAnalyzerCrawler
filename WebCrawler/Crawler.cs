@@ -34,30 +34,30 @@ namespace WebCrawler
             try
             {
                 // load configurations
-                ProgramOptions = ConsoleUtils.Initialize(args, true);
+                ProgramOptions = ConsoleUtils.Initialize (args, true);
 
                 // start execution
-                Execute(ProgramOptions);
+                Execute (ProgramOptions);
 
                 // check before ending for waitForKeyBeforeExit option
-                if (ProgramOptions.Get("waitForKeyBeforeExit", false))
-                    ConsoleUtils.WaitForAnyKey();
+                if (ProgramOptions.Get ("waitForKeyBeforeExit", false))
+                    ConsoleUtils.WaitForAnyKey ();
             }
             catch (Exception ex)
             {
-                LogManager.GetCurrentClassLogger().Fatal(ex);
+                LogManager.GetCurrentClassLogger ().Fatal (ex);
 
                 // check before ending for waitForKeyBeforeExit option
-                if (ProgramOptions.Get("waitForKeyBeforeExit", false))
-                    ConsoleUtils.WaitForAnyKey();
+                if (ProgramOptions.Get ("waitForKeyBeforeExit", false))
+                    ConsoleUtils.WaitForAnyKey ();
 
-                ConsoleUtils.CloseApplication(-60, true);
+                ConsoleUtils.CloseApplication (-60, true);
             }
             // set success exit code
-            ConsoleUtils.CloseApplication(0, false);
+            ConsoleUtils.CloseApplication (0, false);
         }
 
-        static Logger logger = LogManager.GetCurrentClassLogger();
+        static Logger logger    = LogManager.GetCurrentClassLogger ();
         static DateTime started = DateTime.UtcNow;
 
         private static void Execute(FlexibleOptions options)
@@ -199,7 +199,7 @@ namespace WebCrawler
                     // Sanity Check
                     if (String.IsNullOrEmpty (html) || server.StatusCode != System.Net.HttpStatusCode.OK)
                     {
-                        if (server.StatusCode == System.Net.HttpStatusCode.NotFound || server.StatusCode == 0)
+                        if (server.StatusCode == System.Net.HttpStatusCode.NotFound || (int) server.StatusCode == 0)
                         {
                             Console.WriteLine ("Page not Found! Remove it from Queue.");
                             mongoDB.RemoveFromQueue(pageToParse);
@@ -214,12 +214,9 @@ namespace WebCrawler
 
                         // Checking for maximum retry count waitTime
                         double waitTime = 0;
-                        if (retryCounter >= 11)
-                        {
-                            waitTime = TimeSpan.FromMinutes (35).TotalMilliseconds;
-                        }
+                       
                         // Cheking for problematic page
-                        else if (retryCounter >= 13)
+                        if (retryCounter >= 5)
                         {
                             // Probably my IP is blocked for this domain or the page is expired...
 
@@ -248,7 +245,7 @@ namespace WebCrawler
                             
                             // Maybe this IP is blocked by the url Domain. Flag url as not busy 
                             // so that other crawlers can try to process it
-                            if (retryCounter >= 7)
+                            if (retryCounter >= 3)
                             {
                                 mongoDB.ToggleBusyPage (pageToParse, false);
                                 mongoDB.IncrisePageTriesCounter (pageToParse);
