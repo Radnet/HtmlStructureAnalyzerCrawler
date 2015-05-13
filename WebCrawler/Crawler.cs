@@ -81,7 +81,7 @@ namespace WebCrawler
             while(true)
             {
                 // Verify page processing limit
-                if (mongoDB.CountProcessedDB() >= Consts.PROCESSED_PAGE_LIMIT)
+                if (mongoDB.CountProcessedCollection() >= Consts.PROCESSED_PAGE_LIMIT)
                 {
                     Console.WriteLine("Processed pages limit reached.");
                     Console.WriteLine("BYE BYE");

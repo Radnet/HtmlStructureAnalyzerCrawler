@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson.Serialization;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoDB.Driver.Builders;
 using SharedLibrary.Models;
@@ -197,8 +198,8 @@ namespace SharedLibrary
             
             // Set Find and Modify queries statments
             List<IMongoQuery> queries = new List<IMongoQuery>();
-            queries.Add(mongoQuery);
-            queries.Add(Query.EQ("Url", findCursor.First().Url));
+            queries.Add (mongoQuery);
+            queries.Add (Query.EQ("Url", findCursor.First ().Url));
             var updateStatement = Update.Set("IsBusy", true);
 
             // Set Find and Modify Query
@@ -285,10 +286,10 @@ namespace SharedLibrary
         public void IncrisePageTriesCounter(QueuedPage page)
         {
             // Mongo Query
-            var mongoQuery = Query.EQ("Url", page.Url);
+            var mongoQuery      = Query.EQ("Url", page.Url);
             var updateStatement = Update.Inc("Tries", 1);
 
-            var mongoResponse = _database.GetCollection<QueuedPage>(Consts.MONGO_QUEUED_URLS_COLLECTION).FindAndModify(mongoQuery, null, updateStatement, false);
+            var mongoResponse   = _database.GetCollection<QueuedPage>(Consts.MONGO_QUEUED_URLS_COLLECTION).FindAndModify(mongoQuery, null, updateStatement, false);
         }
 
         /// <summary>
@@ -325,19 +326,150 @@ namespace SharedLibrary
 
             // Returns the page
             Bootstrapper botPage = BsonSerializer.Deserialize<Bootstrapper>(mongoResponse.ModifiedDocument);
-            page.Url    = botPage.Url;
-            page.IsBusy = botPage.IsBusy;
-            page.Domain = botPage.Domain;
+            page.Url             = botPage.Url;
+            page.IsBusy          = botPage.IsBusy;
+            page.Domain          = botPage.Domain;
             return true;
         }
 
         /// <summary>
-        /// Count registers on processed DB
+        /// Count registers on processed collection
         /// </summary>
         /// <returns></returns>
-        public int CountProcessedDB()
+        public int CountProcessedCollection()
         {
             return (int)_database.GetCollection<QueuedPage>(Consts.MONGO_PROCESSED_URLS_COLLECTION).Count();
+        }
+
+        /// <summary>
+        /// Count registers on stats collection
+        /// </summary>
+        /// <returns></returns>
+        public int CountStatsCollection()
+        {
+            return (int)_database.GetCollection<QueuedPage>(Consts.MONGO_STATS_COLLECTION).Count();
+        }
+
+        /// <summary>
+        /// Sum all occurrences of a given tag
+        /// </summary>
+        /// <returns></returns>
+        public int CountTag(string tag)
+        {
+            // Build query
+            var query = new BsonDocument 
+                { 
+                    { "$group", 
+                        new BsonDocument 
+                            { 
+                                { "_id", new BsonDocument 
+                                             { 
+                                                 { 
+                                                     "Domain","$Domain"
+                                                 } 
+                                             } 
+                                }, 
+                                { 
+                                    "sumResult", new BsonDocument 
+                                                 { 
+                                                     { 
+                                                         "$sum", "$TagsCount." + tag
+                                                     } 
+                                                 } 
+                                } 
+                            } 
+                  } 
+                };
+            
+            // Create and set AggregateArgs object pipeline
+            AggregateArgs agArgs = new AggregateArgs();
+            agArgs.Pipeline      = new[] { query };
+
+            var result = _database.GetCollection(Consts.MONGO_STATS_COLLECTION).Aggregate(agArgs);
+
+            return BsonSerializer.Deserialize<TagAggregate>(result.FirstOrDefault()).sumResult;
+        }
+
+
+        /// <summary>
+        /// Sum all occurrences of internal Links
+        /// </summary>
+        /// <returns></returns>
+        public int CountInternalLinks()
+        {
+            // Build query
+            var query = new BsonDocument 
+                { 
+                    { "$group", 
+                        new BsonDocument 
+                            { 
+                                { "_id", new BsonDocument 
+                                             { 
+                                                 { 
+                                                     "Domain","$Domain"
+                                                 } 
+                                             } 
+                                }, 
+                                { 
+                                    "sumResult", new BsonDocument 
+                                                 { 
+                                                     { 
+                                                         "$sum", "$InternalLinksCount"
+                                                     } 
+                                                 } 
+                                } 
+                            } 
+                  } 
+                };
+
+            // Create and set AggregateArgs object pipeline
+            AggregateArgs agArgs = new AggregateArgs();
+            agArgs.Pipeline = new[] { query };
+
+            var result = _database.GetCollection(Consts.MONGO_STATS_COLLECTION).Aggregate(agArgs);
+
+            return BsonSerializer.Deserialize<TagAggregate>(result.FirstOrDefault()).sumResult;
+        }
+
+
+        /// <summary>
+        /// Sum all occurrences of external Links
+        /// </summary>
+        /// <returns></returns>
+        public int CountExternalLinks()
+        {
+            // Build query
+            var query = new BsonDocument 
+                { 
+                    { "$group", 
+                        new BsonDocument 
+                            { 
+                                { "_id", new BsonDocument 
+                                             { 
+                                                 { 
+                                                     "Domain","$Domain"
+                                                 } 
+                                             } 
+                                }, 
+                                { 
+                                    "sumResult", new BsonDocument 
+                                                 { 
+                                                     { 
+                                                         "$sum", "$ExternalLinksCount"
+                                                     } 
+                                                 } 
+                                } 
+                            } 
+                  } 
+                };
+
+            // Create and set AggregateArgs object pipeline
+            AggregateArgs agArgs = new AggregateArgs();
+            agArgs.Pipeline = new[] { query };
+
+            var result = _database.GetCollection(Consts.MONGO_STATS_COLLECTION).Aggregate(agArgs);
+
+            return BsonSerializer.Deserialize<TagAggregate>(result.FirstOrDefault()).sumResult;
         }
     }
 }
