@@ -35,7 +35,8 @@
     <Reference Include="AWSSDK">
       <HintPath>..\packages\AWSSDK.2.3.11.0\lib\net45\AWSSDK.dll</HintPath>
     </Reference>
-    <Reference Include="Lz4Net">
+    <Reference Include="Lz4Net, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Lz4.Net.1.0.98\lib\net45\Lz4Net.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
