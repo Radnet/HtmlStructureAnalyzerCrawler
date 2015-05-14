@@ -37,6 +37,6 @@ namespace SharedLibrary
         public static readonly string USER_SECRET_ACCESS_KEY          = ConsoleUtils.ProgramOptions.Get ("USER_SECRET_ACCESS_KEY");
         
         //QUEUE props
-        public static readonly string SQS_QUEUE_URL = "https://sqs.us-east-1.amazonaws.com/461546948012/HtmlQueue";
+        public static readonly string SQS_QUEUE_URL                   = ConsoleUtils.ProgramOptions.Get ("SQS_QUEUE_URL");
     }
 }

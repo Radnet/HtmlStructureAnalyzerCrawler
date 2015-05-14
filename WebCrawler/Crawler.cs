@@ -1,5 +1,6 @@
 ﻿using Amazon.SQS;
 using Amazon.SQS.Model;
+using Lz4Net;
 using Newtonsoft.Json;
 using NLog;
 using SharedLibrary;
@@ -101,7 +102,7 @@ namespace WebCrawler
 
                     // Hiccup to avoid domain blocking connections in case of heavy traffic from the same IP
                     Console.WriteLine ("Hiccup to avoid IP blocking");
-                    Thread.Sleep (Convert.ToInt32 (TimeSpan.FromSeconds (15).TotalMilliseconds));
+                    Thread.Sleep (Convert.ToInt32 (TimeSpan.FromSeconds (6).TotalMilliseconds));
                 }
                 else if (mongoDB.GetBootstrapperPage (out corePageToParse))
                 {
@@ -259,19 +260,25 @@ namespace WebCrawler
                     else
                     {
                         retryCounter = 0;
+                        
+                        // Compres HTML with LZ4
+                        Console.WriteLine("Compressing HTML...");
+                        string compressedHtml = Lz4.CompressString(html, Lz4Mode.HighCompression);
 
                         // Put page html on SQS Queue
                         Console.WriteLine ("Sending HTML to SQS...");
-                        insetHtmlOnSQSQueue(pageToParse, html);
+                        insetHtmlOnSQSQueue (pageToParse, compressedHtml);
 
                         // Save page on DB for future access if needed (html will be zipped for less use of storage)
                         Console.WriteLine ("Adding to HtmlStorage...");
-                        mongoDB.AddToHtmlStorage (new FullPage { Domain = pageToParse.Domain, Html = ZipHelper.Zip (html), Url = pageToParse.Url });
+                        mongoDB.AddToHtmlStorage (new FullPage { Domain = pageToParse.Domain, Html = compressedHtml, Url = pageToParse.Url });
 
                         //Parser Internal urls for Queue feeding 
                         Console.WriteLine ("Getting internal links...");
-                        PageParser parser = new PageParser ();
+
+                        PageParser parser              = new PageParser ();
                         List<string> internalLinksList = parser.GetInternalLinks (html, pageToParse.Domain, pageToParse.Url);
+
                         Console.WriteLine ("(" + internalLinksList.Count + ") internal links found.");
 
                         //Insert Internal urls in Queue to be processed
