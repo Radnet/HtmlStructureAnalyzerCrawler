@@ -131,12 +131,16 @@ namespace WebWorker
             // Verify if an message was received
             if (receiveMessageResponse.Messages.Count > 0)
             {
-                // Decompress message
-                string message      = Lz4.DecompressString (receiveMessageResponse.Messages.First().Body);
+                // Retriving message
+                string message = receiveMessageResponse.Messages.First().Body;
 
                 // Deserializing message
                 fullPageObj         = JsonConvert.DeserializeObject<FullPage> (message);
                 actualReceiptHandle = receiveMessageResponse.Messages.First ().ReceiptHandle;
+
+                // Decompress message
+                fullPageObj.Html    = Lz4.DecompressString (fullPageObj.Html);
+
                 return true;
             }
             // No message found on Queue
