@@ -232,3 +232,7 @@ $RECYCLE.BIN/
 Worker/App.config
 WebCrawler/App.config
 StatsReportGenerator/App.config
+StatsReportGenerator/Report_washingtonpost20150516_110837.xlsx
+StatsReportGenerator/Report_theguardian20150516_110448.xlsx
+StatsReportGenerator/Report_NEWS_NewYorkTimes20150514_032143.xlsx
+StatsReportGenerator/App.config
