@@ -66,8 +66,16 @@ namespace SharedLibrary.SimpleHelpers
             if (!Console.IsOutputRedirected)
             {
                 ConsoleUtils.DisplayHeader (
-                    typeof(ConsoleUtils).Namespace.Replace (".SimpleHelpers", ""),
+                    typeof(ConsoleUtils).Namespace.Replace(".SimpleHelpers", ""),
                     "options: " + (ProgramOptions == null ? "none" : "\n#    " + String.Join ("\n#    ", ProgramOptions.Options.Select (i => i.Key + "=" + i.Value))));
+            }
+            else
+            {
+                var logger = LogManager.GetCurrentClassLogger ();
+                if (logger.IsDebugEnabled)
+                {
+                    logger.Debug ("options: " + (ProgramOptions == null ? "none" : "\n#    " + String.Join ("\n#    ", ProgramOptions.Options.Select (i => i.Key + "=" + i.Value))));
+                }
             }
 
             return ProgramOptions;
@@ -90,7 +98,6 @@ namespace SharedLibrary.SimpleHelpers
             // more concurrent connections to the same IP (avoid throttling) and other tuning
             // http://blogs.msdn.com/b/jpsanders/archive/2009/05/20/understanding-maxservicepointidletime-and-defaultconnectionlimit.aspx
             System.Net.ServicePointManager.DefaultConnectionLimit = 1024; // more concurrent connections to the same IP (avoid throttling)
-            System.Net.ServicePointManager.MaxServicePointIdleTime = 30 * 1000; // release unused connections sooner (30 seconds)
         }
 
         static string _logFileName;
@@ -103,7 +110,9 @@ namespace SharedLibrary.SimpleHelpers
         {
             // default parameters initialization from config file
             if (String.IsNullOrEmpty (logFileName))
-                logFileName = System.Configuration.ConfigurationManager.AppSettings["logFilename"] ?? ("${basedir}/log/" + typeof(ConsoleUtils).Namespace.Replace(".SimpleHelpers", "") + ".log");
+                logFileName = System.Configuration.ConfigurationManager.AppSettings["logFilename"];
+			if (String.IsNullOrEmpty (logFileName))
+                logFileName = ("${basedir}/log/" + typeof (ConsoleUtils).Namespace.Replace(".SimpleHelpers", "") + ".log");
             if (String.IsNullOrEmpty (logLevel))
                 logLevel = System.Configuration.ConfigurationManager.AppSettings["logLevel"] ?? "Info";
 
@@ -137,7 +146,7 @@ namespace SharedLibrary.SimpleHelpers
 
             // file output
             var fileTarget = new NLog.Targets.FileTarget ();
-            fileTarget.FileName = "${basedir}/log/" + typeof(ConsoleUtils).Namespace.Replace(".SimpleHelpers", "") + ".log";
+            fileTarget.FileName = logFileName;
             fileTarget.Layout = "${longdate}\t${callsite}\t${level}\t\"${message}${onexception: \t [Exception] ${exception:format=tostring}}\"";
             fileTarget.ConcurrentWrites = true;
             fileTarget.AutoFlush = true;
@@ -153,8 +162,7 @@ namespace SharedLibrary.SimpleHelpers
 
             config.AddTarget ("file", fileTarget);
 
-            // configure log from configuration file            
-            fileTarget.FileName = logFileName;
+            // configure log from configuration file
             var rule2 = new NLog.Config.LoggingRule ("*", currentLogLevel, fileTarget);
             config.LoggingRules.Add (rule2);
 
@@ -270,33 +278,34 @@ namespace SharedLibrary.SimpleHelpers
             if (args != null)
             {
                 string arg;
+                bool openTag = false;
                 string lastTag = null;
                 for (int ix = 0; ix < args.Length; ix++)
                 {
                     arg = args[ix];
-                    // check for option with key=value sintax
+                    // check for option with key=value sintax (restriction: the previous tag must not be an open tag)
                     // also valid for --key:value
+                    bool hasStartingMarker = arg.StartsWith ("-", StringComparison.Ordinal) || arg.StartsWith ("/", StringComparison.Ordinal);
                     int p = arg.IndexOf ('=');
-                    if (p > 0)
+                    if (p > 0 && (hasStartingMarker || !openTag))
                     {
                         argsOptions.Set (arg.Substring (0, p).Trim ().TrimStart ('-', '/'), arg.Substring (p + 1).Trim ());
                         lastTag = null;
-                        continue;
-                    }
-                    
+                        openTag = false;
+                    }                    
                     // search for tag stating with special character
-                    if (arg.StartsWith ("-", StringComparison.Ordinal) || arg.StartsWith ("/", StringComparison.Ordinal))
+                    else if (hasStartingMarker)
                     {
                         lastTag = arg.Trim ().TrimStart ('-', '/');
                         argsOptions.Set (lastTag, "true");
-                        continue;
+                        openTag = true;
                     }
-
                     // set value of last tag
-                    if (lastTag != null)
+                    else if (lastTag != null)
                     {
                         argsOptions.Set (lastTag, arg.Trim ());
-                    }
+                        openTag = false;
+                    }                    
                 }
             }
             return argsOptions;
