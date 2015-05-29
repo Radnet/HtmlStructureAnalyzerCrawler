@@ -179,43 +179,50 @@ namespace SharedLibrary
         /// <returns>Found page, if any</returns>
         public QueuedPage FindAndModifyRandom()
         {
-            // Generate random skip number
-            int count   = (int) _database.GetCollection<QueuedPage>(Consts.MONGO_QUEUED_URLS_COLLECTION).Count();
-            Random rnd  = new Random();
-            int skipNum = rnd.Next(0, count);
+            try
+            {
+                // Generate random skip number
+                int count = (int)_database.GetCollection<QueuedPage>(Consts.MONGO_QUEUED_URLS_COLLECTION).Count();
+                Random rnd = new Random();
+                int skipNum = rnd.Next(0, count);
 
-            // Sanity check
-            if(count == 0)
+                // Sanity check
+                if (count == 0)
+                {
+                    return null;
+                }
+
+                // Mongo Query
+                var mongoQuery = Query.EQ("IsBusy", false);
+
+                // Find random not busy register 
+                var findCursor = _database.GetCollection<QueuedPage>(Consts.MONGO_QUEUED_URLS_COLLECTION).Find(mongoQuery).SetLimit(-1).SetSkip(skipNum);
+
+                // Set Find and Modify queries statments
+                List<IMongoQuery> queries = new List<IMongoQuery>();
+                queries.Add(mongoQuery);
+                queries.Add(Query.EQ("Url", findCursor.First().Url));
+                var updateStatement = Update.Set("IsBusy", true);
+
+                // Set Find and Modify Query
+                var FMQuery = Query.And(queries);
+
+                // Finding a Not Busy page, and updating its state to busy
+                var mongoResponse = _database.GetCollection<QueuedPage>(Consts.MONGO_QUEUED_URLS_COLLECTION).FindAndModify(FMQuery, null, updateStatement, false);
+
+                // Checking for query error or no page found
+                if (mongoResponse == null || mongoResponse.Response == null || mongoResponse.ModifiedDocument == null)
+                {
+                    return null;
+                }
+
+                // Returns the page
+                return BsonSerializer.Deserialize<QueuedPage>(mongoResponse.ModifiedDocument);
+            }
+            catch(Exception e)
             {
                 return null;
             }
-
-            // Mongo Query
-            var mongoQuery = Query.EQ("IsBusy", false);
-
-            // Find random not busy register 
-            var findCursor = _database.GetCollection<QueuedPage>(Consts.MONGO_QUEUED_URLS_COLLECTION).Find(mongoQuery).SetLimit(-1).SetSkip(skipNum);
-            
-            // Set Find and Modify queries statments
-            List<IMongoQuery> queries = new List<IMongoQuery>();
-            queries.Add (mongoQuery);
-            queries.Add (Query.EQ("Url", findCursor.First ().Url));
-            var updateStatement = Update.Set("IsBusy", true);
-
-            // Set Find and Modify Query
-            var FMQuery = Query.And(queries);
-
-            // Finding a Not Busy page, and updating its state to busy
-            var mongoResponse = _database.GetCollection<QueuedPage>(Consts.MONGO_QUEUED_URLS_COLLECTION).FindAndModify(FMQuery, null, updateStatement, false);
-
-            // Checking for query error or no page found
-            if (mongoResponse == null || mongoResponse.Response == null || mongoResponse.ModifiedDocument == null)
-            {
-                return null;
-            }
-
-            // Returns the page
-            return BsonSerializer.Deserialize<QueuedPage>(mongoResponse.ModifiedDocument);
         }
 
         /// <summary>
