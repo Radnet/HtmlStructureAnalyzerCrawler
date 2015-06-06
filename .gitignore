@@ -244,3 +244,4 @@ StatsReportGenerator/Report_eco_americanas20150530_111651.xlsx
 StatsReportGenerator/Report_news_nytimes20150514_032143.xlsx
 StatsReportGenerator/Report_news_washingtonpost20150516_110837.xlsx
 *.xlsx
+StatsReportGenerator/App.config
