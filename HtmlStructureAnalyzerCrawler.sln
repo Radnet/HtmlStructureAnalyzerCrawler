@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.30110.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebCrawler", "WebCrawler\WebCrawler.csproj", "{71DDF6D7-D10F-4883-A93A-9D7154B3476E}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedLibrary", "SharedLibrary\SharedLibrary.csproj", "{64EF8AE3-C420-46A9-8382-428B5E514BD4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StatsReportGenerator", "StatsReportGenerator\StatsReportGenerator.csproj", "{D1A6D5CA-5260-4BDC-9885-76F495CB2680}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Classificator", "Classificator\Classificator.csproj", "{FD8966CC-CECA-494C-8887-4A12BB6CA47E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{D1A6D5CA-5260-4BDC-9885-76F495CB2680}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D1A6D5CA-5260-4BDC-9885-76F495CB2680}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D1A6D5CA-5260-4BDC-9885-76F495CB2680}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD8966CC-CECA-494C-8887-4A12BB6CA47E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD8966CC-CECA-494C-8887-4A12BB6CA47E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD8966CC-CECA-494C-8887-4A12BB6CA47E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD8966CC-CECA-494C-8887-4A12BB6CA47E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
