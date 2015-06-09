@@ -100,6 +100,9 @@ namespace Classificator
                 }
                 else
                 {
+                    // Increase counter
+                    pageCounter++;
+
                     //Parser Internal urls for Queue feeding 
                     Console.WriteLine("Getting internal links...");
 
@@ -120,13 +123,13 @@ namespace Classificator
 
             //######## Classify #########
             // Initialize counters
-            Int64 textAndStylers = 0;
-            Int64 interaction    = 0;
-            Int64 visual         = 0;
-            Int64 form           = 0;
-            Int64 table          = 0;
-            Int64 organizers     = 0;
-            Int64 links          = 0;
+            double textAndStylers = 0;
+            double interaction    = 0;
+            double visual         = 0;
+            double form           = 0;
+            double table          = 0;
+            double organizers     = 0;
+            double links          = 0;
 
             // Calculate percentages
             foreach(PageInfo pgInfo in pageInfoList)
@@ -228,7 +231,7 @@ namespace Classificator
             }
 
             // Calculate total
-            Int64 totalTagsCount = textAndStylers + interaction + visual + form + table + organizers + links;
+            double totalTagsCount = textAndStylers + interaction + visual + form + table + organizers + links;
 
             // Calculate percentage of each class
             double perc_textAndStylers = (textAndStylers / totalTagsCount) * 100;
@@ -239,7 +242,114 @@ namespace Classificator
             double perc_organizers     = (organizers     / totalTagsCount) * 100;
             double perc_links          = (links          / totalTagsCount) * 100;
 
-            // Calculate points for each class
+            // Get percentages for each class
+            // News
+            double news_textAndStylers = ConsoleUtils.ProgramOptions.Get ("news_textAndStylers" , 0.0);
+            double news_interaction    = ConsoleUtils.ProgramOptions.Get ("news_interaction"    , 0.0);
+            double news_visual         = ConsoleUtils.ProgramOptions.Get ("news_visual"         , 0.0);
+            double news_form           = ConsoleUtils.ProgramOptions.Get ("news_form"           , 0.0);
+            double news_table          = ConsoleUtils.ProgramOptions.Get ("news_table"          , 0.0);
+            double news_organizers     = ConsoleUtils.ProgramOptions.Get ("news_organizers"     , 0.0);
+            double news_links          = ConsoleUtils.ProgramOptions.Get ("news_links"          , 0.0);
+                                                                                                   
+            // Eccomerce                                                                                
+            double ecos_textAndStylers = ConsoleUtils.ProgramOptions.Get ("ecos_textAndStylers" , 0.0);
+            double ecos_interaction    = ConsoleUtils.ProgramOptions.Get ("ecos_interaction"    , 0.0);
+            double ecos_visual         = ConsoleUtils.ProgramOptions.Get ("ecos_visual"         , 0.0);
+            double ecos_form           = ConsoleUtils.ProgramOptions.Get ("ecos_form"           , 0.0);
+            double ecos_table          = ConsoleUtils.ProgramOptions.Get ("ecos_table"          , 0.0);
+            double ecos_organizers     = ConsoleUtils.ProgramOptions.Get ("ecos_organizers"     , 0.0);
+            double ecos_links          = ConsoleUtils.ProgramOptions.Get ("ecos_links"          , 0.0);
+                                                                                                   
+            // Governament                                                                         
+            double govs_textAndStylers = ConsoleUtils.ProgramOptions.Get ("govs_textAndStylers" , 0.0);
+            double govs_interaction    = ConsoleUtils.ProgramOptions.Get ("govs_interaction"    , 0.0);
+            double govs_visual         = ConsoleUtils.ProgramOptions.Get ("govs_visual"         , 0.0);
+            double govs_form           = ConsoleUtils.ProgramOptions.Get ("govs_form"           , 0.0);
+            double govs_table          = ConsoleUtils.ProgramOptions.Get ("govs_table"          , 0.0);
+            double govs_organizers     = ConsoleUtils.ProgramOptions.Get ("govs_organizers"     , 0.0);
+            double govs_links          = ConsoleUtils.ProgramOptions.Get ("govs_links"          , 0.0);
+
+            // Initialize distances
+            double news_distance = 0;
+            double ecos_distance = 0;
+            double govs_distance = 0;
+
+            // For each class calculate distance for 1
+            // News
+            news_distance = news_distance + (1 / Math.Abs(news_textAndStylers - perc_textAndStylers ));
+            news_distance = news_distance + (1 / Math.Abs(news_interaction    - perc_interaction    ));
+            news_distance = news_distance + (1 / Math.Abs(news_visual         - perc_visual         ));
+            news_distance = news_distance + (1 / Math.Abs(news_form           - perc_form           ));
+            news_distance = news_distance + (1 / Math.Abs(news_table          - perc_table          ));
+            news_distance = news_distance + (1 / Math.Abs(news_organizers     - perc_organizers     ));
+            news_distance = news_distance + (1 / Math.Abs(news_links          - perc_links          ));
+
+            // Eccomerce 
+            ecos_distance = ecos_distance + (1 / Math.Abs(ecos_textAndStylers - perc_textAndStylers ));
+            ecos_distance = ecos_distance + (1 / Math.Abs(ecos_interaction    - perc_interaction    ));
+            ecos_distance = ecos_distance + (1 / Math.Abs(ecos_visual         - perc_visual         ));
+            ecos_distance = ecos_distance + (1 / Math.Abs(ecos_form           - perc_form           ));
+            ecos_distance = ecos_distance + (1 / Math.Abs(ecos_table          - perc_table          ));
+            ecos_distance = ecos_distance + (1 / Math.Abs(ecos_organizers     - perc_organizers     ));
+            ecos_distance = ecos_distance + (1 / Math.Abs(ecos_links          - perc_links          ));
+
+            // Governament   
+            govs_distance = govs_distance + (1 / Math.Abs(govs_textAndStylers - perc_textAndStylers ));
+            govs_distance = govs_distance + (1 / Math.Abs(govs_interaction    - perc_interaction    ));
+            govs_distance = govs_distance + (1 / Math.Abs(govs_visual         - perc_visual         ));
+            govs_distance = govs_distance + (1 / Math.Abs(govs_form           - perc_form           ));
+            govs_distance = govs_distance + (1 / Math.Abs(govs_table          - perc_table          ));
+            govs_distance = govs_distance + (1 / Math.Abs(govs_organizers     - perc_organizers     ));
+            govs_distance = govs_distance + (1 / Math.Abs(govs_links          - perc_links          ));
+
+            // Show points
+            Console.WriteLine("news_distance = " + news_distance);
+            Console.WriteLine("ecos_distance = " + ecos_distance);
+            Console.WriteLine("govs_distance = " + govs_distance);
+
+            // Classify by the smallest distance
+            if(news_distance < ecos_distance)
+            {
+                // Its a NEWS
+                if(news_distance < govs_distance)
+                {
+                    Console.WriteLine("It's a NEWS !");
+                }
+                // Its a GOV
+                else if (govs_distance < news_distance)
+                {
+                    Console.WriteLine("It's a GOVERNAMENTAL !");
+                }
+                else
+                {
+                    Console.WriteLine("It's a TIE between NEWS and GOVERNAMENTAL !");
+                }
+            }
+            else if (ecos_distance < news_distance)
+            {
+                // Its a ECO
+                if (ecos_distance < govs_distance)
+                {
+                    Console.WriteLine("It's a ECCOMERCE !");
+                }
+                // Its a GOV
+                else if (govs_distance < ecos_distance)
+                {
+                    Console.WriteLine("It's a GOVERNAMENTAL !");
+                }
+                else
+                {
+                    Console.WriteLine("It's a TIE between ECCOMERCE and GOVERNAMENTAL !");
+                }
+            }
+            // Its a tie beetween NEWS and ECO
+            else
+            {
+                Console.WriteLine("It's a TIE between NEWS and ECCOMERCE !");
+            }
+            
+            Console.ReadKey();
 
             //###########################
 
